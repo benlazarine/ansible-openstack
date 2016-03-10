@@ -1,0 +1,5 @@
+---
+- name: Install and configure haproxy for OpenStack API controller nodes
+  hosts: haproxy
+  roles:
+    - haproxy

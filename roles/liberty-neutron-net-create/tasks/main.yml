@@ -1,0 +1,211 @@
+---
+###########################
+# Create External Network #
+###########################
+
+# External Network
+- name: determine if external network should be created
+  shell: /usr/bin/neutron net-show ext-net
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.admin_env }}"
+  register: ext_network_creation
+  tags:
+    - ext-net
+
+- name: create external network if not present
+  shell: /usr/bin/neutron net-create ext-net --router:external --provider:physical_network external --provider:network_type flat
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.admin_env }}"
+  when: ext_network_creation.rc == 1
+  tags:
+    - ext-net
+
+# External Subnet
+- name: determine if external network subnet should be created
+  shell: /usr/bin/neutron subnet-list | /bin/grep "{{ NEUTRON_NETWORKS.ext_net.network }}"
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.admin_env }}"
+  register: ext_subnet_creation
+  tags:
+    - ext-net
+
+- name: create external network subnet if not present
+  shell: /usr/bin/neutron subnet-create ext-net {{ NEUTRON_NETWORKS.ext_net.network }} --allocation-pool start={{ NEUTRON_NETWORKS.ext_net.start }},end={{ NEUTRON_NETWORKS.ext_net.end }} --disable-dhcp --gateway {{ NEUTRON_NETWORKS.ext_net.gateway }}
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.admin_env }}"
+  when: ext_subnet_creation.stdout == ""
+  tags:
+    - ext-net
+
+###########################
+# Create Project Networks #
+###########################
+- name: get project id
+  shell: /usr/bin/openstack project show {{ item.key }} | /bin/grep ' id ' | /usr/bin/awk '{ print $4 }' | /bin/grep -v 'No project'
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.admin_env }}"
+  with_dict: NEUTRON_NETWORKS.project_nets
+  register: project_ids
+  tags:
+    - project-net
+
+# - debug: msg=" project_net={{ item.item.key }}-net id={{ item.stdout }}"
+#   with_items: project_ids.results
+#   when: item.rc == 0
+#   run_once: true
+#   tags:
+#     - project-net
+
+- name: create project net if not present
+  shell: /usr/bin/neutron net-create {{ item.item.key }}-net --tenant-id {{ item.stdout }} --provider:network_type vxlan
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.admin_env }}"
+  when: item.rc == 0
+  with_items: project_ids.results
+  tags:
+    - project-net
+
+###################
+# Create Sub-nets #
+###################
+- name: determine if tenant sub-net already exists
+  shell: /usr/bin/neutron subnet-list | /bin/grep {{ item.key }}
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.user_env }}"
+  with_dict: NEUTRON_NETWORKS.project_nets
+  register: project_subnets
+  tags:
+    - project-sub-nets
+
+# - debug: msg="{{ item.stdout }}"
+#   with_items: project_subnets.results
+#   run_once: true
+#   tags:
+#     - project-sub-nets
+
+- name: create tenant subnet if not present
+  shell: /usr/bin/neutron subnet-create {{ item.item.key }}-net --name {{ item.item.key }}-subnet --gateway {{ item.item.value.gateway }} {{ item.item.value.network }}
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.user_env }}"
+  when: item.stdout == ""
+  with_items: project_subnets.results
+  tags:
+    - project-sub-nets
+
+##########################
+# Create Project Routers #
+##########################
+- name: determine if the project router already exists
+  shell: /usr/bin/neutron router-list | /bin/grep '{{ item.key }}-router' | /usr/bin/awk '{ print $2 }'
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.user_env }}"
+  with_dict: NEUTRON_NETWORKS.project_nets
+  register: project_routers
+  tags:
+    - project-router
+
+
+# - debug: var=project_routers
+#   run_once: true
+#   tags:
+#     - project-router
+
+# - debug: msg=" project_net={{ item.item.key }}-net id={{ item.stdout }}"
+#   with_items: project_routers.results
+#   when: item.rc == 0
+#   run_once: true
+#   tags:
+#     - project-router
+
+- name: create project router if not present
+  shell: /usr/bin/neutron router-create {{ item.item.key }}-router
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.user_env }}"
+  when: item.stdout == ""
+  with_items: project_routers.results
+  tags:
+    - project-router
+
+#########################
+# Add Router Interfaces #
+#########################
+- name: get subnet id
+  shell: /usr/bin/neutron subnet-list | /bin/grep '{{ item.key }}-subnet' | /usr/bin/awk '{ print $2 }'
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.user_env }}"
+  with_dict: NEUTRON_NETWORKS.project_nets
+  register: project_router_subnet
+  tags:
+    - project-router-interfaces
+
+- debug: var=project_router_subnet
+  run_once: true
+  tags:
+    - project-router-interfaces
+
+- name: determine if the interface has already been added to the router
+  shell: /usr/bin/neutron router-port-list {{ item.item.key }}-router | /bin/grep '{{ item.stdout }}'
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.user_env }}"
+  when: item.stdout != ""
+  with_items: project_router_subnet.results
+  register: project_router_interface
+  tags:
+    - project-router-interfaces
+
+- debug: var=project_router_interface
+  run_once: true
+  tags:
+    - project-router-interfaces
+
+- name: add subnet interface to the project router
+  shell: /usr/bin/neutron router-interface-add {{ item.item.item.key }}-router {{ item.item.item.key }}-subnet
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.user_env }}"
+  when: (item.rc is defined) and (item.rc != 0)
+  with_items: project_router_interface.results
+  tags:
+    - project-router-interfaces
+
+######################
+# Add Router Gateway #
+######################
+- name: determine if the ext-net gateway has already been added to the router
+  shell: /usr/bin/neutron router-list | /bin/grep '{{ item.key }}-router' | /usr/bin/cut -f 4 -d '|' | /usr/bin/tr -d '[[:space:]]'
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.user_env }}"
+  with_dict: NEUTRON_NETWORKS.project_nets
+  register: project_router_gateway
+  tags:
+    - project-router-gateway
+
+- debug: var=project_router_gateway
+  run_once: true
+  tags:
+    - project-router-gateway
+
+# neutron router-gateway-set atmoadmin-router ext-net
+
+- name: add ext-net gateway to the project router
+  shell: /usr/bin/neutron router-gateway-set {{ item.item.key }}-router ext-net
+  run_once: true
+  ignore_errors: yes
+  environment: "{{ OS_CREDS.user_env }}"
+  when: item.stdout == "null"
+  with_items: project_router_gateway.results
+  tags:
+    - project-router-gateway

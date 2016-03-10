@@ -1,0 +1,39 @@
+[mysqld]
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+user=mysql
+binlog_format=ROW
+bind-address=0.0.0.0
+default_storage_engine=innodb
+innodb_autoinc_lock_mode=2
+innodb_flush_log_at_trx_commit=0
+innodb_buffer_pool_size=122M
+wsrep_provider=/usr/lib64/galera-3/libgalera_smm.so
+wsrep_provider_options="gcache.size=300M; gcache.page_size=1G"
+wsrep_cluster_name="{{ GALERA_CONFIG.cluster_name }}"
+wsrep_node_name={{ ansible_hostname }}
+wsrep_node_address="{{ ansible_ssh_host }}"
+wsrep_cluster_address="gcomm://{% for node in GALERA_CONFIG.nodes %}
+{{ node }}{% if not loop.last %},{% endif %}
+{% endfor %}"
+wsrep_sst_method=rsync
+
+{{ GALERA_CONFIG.innodb_settings.innodb_file_per_table | default(omit) }}
+{{ GALERA_CONFIG.innodb_settings.innodb_flush_method | default(omit) }}
+{{ GALERA_CONFIG.innodb_settings.innodb_log_file_size | default(omit) }}
+{{ GALERA_CONFIG.innodb_settings.innodb_open_files | default(omit) }}
+{{ GALERA_CONFIG.innodb_settings.innodb_lock_wait_timeout | default(omit) }}
+{{ GALERA_CONFIG.innodb_settings.collation_server | default(omit) }}
+{{ GALERA_CONFIG.innodb_settings.init_connect | default(omit) }}
+{{ GALERA_CONFIG.innodb_settings.character_set_server | default(omit) }}
+
+{{ GALERA_CONFIG.innodb_settings.wsrep_sst_auth | default(omit) }}
+
+{{ GALERA_CONFIG.innodb_settings.max_connections | default(omit) }}
+
+[mysql_safe]
+log-error=/var/log/mysqld.log
+pid-file=/var/run/mysqld/mysqld.pid
+
+
+includedir /etc/my.cnf.d/

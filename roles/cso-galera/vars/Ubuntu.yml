@@ -1,0 +1,21 @@
+---
+MYSQL_DEPENDENCIES:
+  to_remove:
+    - mysql-common
+    - libmysqlclient18
+  to_install:
+    - software-properties-common
+    - python-mysqldb
+    - xinetd
+
+PURGE_SETTING: "purge=yes"
+
+GALERA_DEPENDENCIES:
+  packages:
+    - galera-3
+    - galera-arbitrator-3
+    - mysql-wsrep-5.6
+
+MYSQL:
+  service: mysql
+  conf_location: /etc/my.cnf

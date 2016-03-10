@@ -1,0 +1,37 @@
+---
+
+##################
+# RabbitMQ Users #
+##################
+
+- name: create rabbitmq openstack user
+  rabbitmq_user: user=openstack password={{ RABBIT_PASS }} vhost=/ configure_priv=.* read_priv=.* write_priv=.* tags=administrator state=present
+  run_once: true
+  tags:
+    - rabbitmq
+
+- name: set rabbitmq guest user password
+  rabbitmq_user: user=guest password={{ RABBIT_PASS }} vhost=/ configure_priv=.* read_priv=.* write_priv=.* tags=administrator state=present
+  run_once: true
+  tags:
+    - rabbitmq
+
+###################
+# Databases Users #
+###################
+
+- name: create openstack databases
+  mysql_db: login_user=root login_password="{{ MYSQL.root_password }}" name={{ item.name }} state=present encoding=utf8
+  with_items: "{{ MYSQL.database }}"
+  tags:
+    - db
+    - databases
+
+- name: create openstack users and set passwords
+  mysql_user: name={{ item[0].name }} password={{ item[0].password }} host={{ item[1] }} login_user=root login_password="{{ MYSQL.root_password }}" check_implicit_admin=yes priv="{{ item[0].name }}.*:ALL,GRANT"
+  with_subelements:
+      - MYSQL.database
+      - allowed_hosts
+  tags:
+    - db
+    - db_users

@@ -1,0 +1,24 @@
+#!/bin/bash
+ 
+MYSQLUSERNAME="galera_health"
+MYSQLPASSWORD="{{ MYSQL_PASS_GALERA_HEALTH }}"
+  
+MYSQLSTATUS1=`mysql --force --user=$MYSQLUSERNAME --password=$MYSQLPASSWORD -B -N -e "SHOW STATUS WHERE Variable_name = 'wsrep_ready'" | awk '{print $2}'`
+if [ $? = 0 -a $MYSQLSTATUS1 = "ON" ]; then
+    MYSQLSTATUS2=`mysql --force --user=$MYSQLUSERNAME --password=$MYSQLPASSWORD -B -N -e "SHOW STATUS WHERE Variable_name = 'wsrep_local_state_comment'" | awk '{print $2}'`
+    if [ $? = 0 -a $MYSQLSTATUS2 = "Synced" ]; then
+        echo -en "HTTP/1.1 200 OK\r\n"
+        echo -en "Content-Length: 28\r\n"
+        echo -en "Content-Type: Content-Type: text/plain\r\n\r\n"
+        # calculate contentlength by the num of chars in this line
+        echo -en "MySQL Galera is Working.\r\n\r\n"
+        exit 0
+    fi
+fi
+ 
+echo -en "HTTP/1.1 503 Service Unavailable\r\n"
+echo -en "Content-Length: 28\r\n"
+echo -en "Content-Type: Content-Type: text/plain\r\n\r\n"
+# calculate contentlength by the num of chars in this line
+echo -en "MySQL Galera has Failed.\r\n\r\n"
+exit 1

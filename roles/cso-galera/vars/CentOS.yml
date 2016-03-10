@@ -1,0 +1,20 @@
+---
+MYSQL_DEPENDENCIES:
+  to_remove:
+    - postfix
+    - mysql-libs
+    - mariadb-libs-5.5.44-2.el7.centos.x86_64
+  to_install:
+    - libaio
+    - rsync
+    - xinetd
+    - MySQL-python
+
+GALERA_DEPENDENCIES:
+  packages:
+    - galera-3
+    - mysql-wsrep-5.6
+
+MYSQL:
+  service: mysql
+  conf_location: /etc/my.cnf

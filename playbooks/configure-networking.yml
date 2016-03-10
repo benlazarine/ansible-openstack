@@ -1,0 +1,8 @@
+---
+- name: Configure OpenStack node networking
+  hosts: maas
+  roles:
+    - configure-networking
+  tags:
+    - host-networking
+

@@ -1,0 +1,6 @@
+{% for k,v in HOSTS | dictsort(false, 'value') %}
+Host {{ k }}
+	User root
+	Port 1657
+	Hostname {{ v.mgmt.address }}
+{% endfor %}

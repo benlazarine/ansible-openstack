@@ -1,0 +1,275 @@
+---
+# This role installs Galera Cluster based on MySQL 5.6.  This role assumes that one is installing galera on a three node cluster
+
+- name: gather os specific variables
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
+    - "{{ ansible_distribution }}.yml"
+    - "{{ ansible_os_family }}.yml"
+  tags:
+    - vars
+
+- name: remove any packages that could break galera
+  action: >
+    {{ ansible_pkg_mgr }} name={{ item }} state=absent update_cache=yes "{{ PURGE_SETTING | default(None) }}"
+  with_items: MYSQL_DEPENDENCIES.to_remove
+  when: MYSQL_DEPENDENCIES.to_remove is defined
+  tags:
+    - install
+    - uninstall
+
+- name: install packages required for galera
+  action: >
+    {{ ansible_pkg_mgr }} name={{ item }} state=present
+  with_items: MYSQL_DEPENDENCIES.to_install
+  tags:
+    - install
+
+# Break out for separate OS tasks
+- name: include for CentOS specific tasks
+  include: CentOS.yml
+  when: ansible_distribution == "CentOS"
+
+- name: include for Ubuntu specific tasks
+  include: Ubuntu.yml
+  when: ansible_distribution == "Ubuntu"
+
+- name: install galera mysql
+  action: >
+    {{ ansible_pkg_mgr }} name={{ item }} state=latest
+  with_items: GALERA_DEPENDENCIES.packages
+  tags:
+    - install
+    - db
+
+- name: create galera dev directory
+  file: path=/opt/galera/ state=directory mode=0755
+  tags:
+    - galera_health
+
+- name: create required mysql directories
+  file: path={{ item }} state=directory owner=mysql group=mysql
+  with_items:
+    - /etc/mysql/conf.d
+    - /var/log/mysql
+  tags:
+    - install
+
+- name: copy galera health script 
+  template: src={{ item.src }} dest={{ item.dest }} mode="a+x"
+  with_items:
+    - { src: galera_health.j2, dest: /opt/galera/galera_health }
+    - { src: galera_health.xinetd.j2, dest: /etc/xinetd.d/galera_health }
+
+- name: add galera_health port entry to services
+  lineinfile: dest=/etc/services regexp='^galera_health' line='galera_health   9200/tcp'
+  tags:
+    - service
+
+- name: start xinetd
+  service: name=xinetd state=restarted
+  tags:
+    - xinetd
+
+- name: change sysctl for galera to allow haproxy to reuse connections
+  sysctl: name="{{ item.key }}" value="{{ item.value }}" state=present reload=yes
+  with_dict: 
+    net.ipv4.tcp_tw_recycle: 1
+  tags:
+    - sysctl
+    - networking
+
+- name: remove other my.cnf files
+  file: path={{ item }} state=absent
+  with_items:
+    - /etc/mysql/my.cnf
+    - /etc/mysql/conf.d/my.cnf
+
+- name: template /etc/my.cnf for galera config
+  template: src={{ item }} dest={{ MYSQL.conf_location }} backup=yes
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.my.cnf.j2"
+    - "{{ ansible_distribution }}.my.cnf.j2"
+    - "{{ ansible_os_family }}.my.cnf.j2"
+  tags:
+    - config
+    - db
+    - template
+
+# - name: template ~/my.cnf for pre-set password
+#   template: src=login.my.cnf.j2 dest=/root/.my.cnf backup=yes
+#   tags:
+#     - debug
+
+- name: create debian-start file if it does not already exist
+  file: path=/etc/mysql/debian-start state=file mode=0644
+  when: ansible_distribution == "Ubuntu"
+  tags:
+    - debian-start
+
+- name: add special case for debian start on master node
+  lineinfile: dest=/etc/mysql/debian-start regexp="^WSREP_CLUSTER_ADDRESS=" line="WSREP_CLUSTER_ADDRESS=\"gcomm://\"" state=present backrefs=yes
+  when: (ansible_distribution == "Ubuntu") and (GALERA_CONFIG.master_node == ansible_ssh_host)
+  tags:
+    - config
+
+- name: bootstrap cluster
+  lineinfile: dest=/etc/my.cnf regexp="^wsrep_cluster_address=\"gcomm://" line="wsrep_cluster_address=\"gcomm://\"" state=present backrefs=yes
+  when: GALERA_CONFIG.master_node == ansible_ssh_host
+  tags:
+    - config
+    - db
+
+- name: stop MySQL
+  service: name={{ MYSQL.service }} state=stopped
+  tags:
+    - config
+    - db
+    - stop-service
+
+- name: start cluster for ubuntu on master node
+  shell: service mysql start --wsrep-new-cluster
+  when: (ansible_distribution == "Ubuntu") and (GALERA_CONFIG.master_node == ansible_ssh_host)
+  run_once: true
+  ignore_errors: yes
+  tags:
+    - config
+    - db
+
+- name: start cluster for centos on master node
+  shell: service mysql bootstrap
+  when: (ansible_distribution == "CentOS") and (GALERA_CONFIG.master_node == ansible_ssh_host)
+  run_once: true
+  tags:
+    - config
+    - db
+
+- name: restart mysql on non-master nodes
+  service: name={{ MYSQL.service }} state=restarted
+  when: GALERA_CONFIG.master_node != ansible_ssh_host
+
+- name: template /etc/my.cnf for galera config after cluster has come up
+  template: src={{ item }} dest={{ MYSQL.conf_location }} backup=yes
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.my.cnf.j2"
+    - "{{ ansible_distribution }}.my.cnf.j2"
+    - "{{ ansible_os_family }}.my.cnf.j2"
+  when: GALERA_CONFIG.master_node == ansible_ssh_host
+  tags:
+    - config
+    - db
+    - template
+
+- name: restart MySQL on master node
+  service: name={{ MYSQL.service }} state=restarted
+  when: GALERA_CONFIG.master_node == ansible_ssh_host
+  tags:
+    - config
+    - db
+    - restart-service
+
+- name: check for the existence of .mysql_secret
+  stat: path=/root/.mysql_secret
+  register: mysql_secret
+  when: (ansible_distribution == "CentOS")
+  tags:
+    - mysql_generated_pass
+    - debug
+
+- name: get .mysql_secret generated password for CentOS 
+  shell: cat /root/.mysql_secret | cut -f 18 -d ' ' | grep -v -e '^$'
+  register: mysql_secret_pass
+  when: (ansible_distribution == "CentOS") and (mysql_secret.stat.exists)
+  tags:
+    - mysql_generated_pass
+    - debug
+
+- name: output auto generated password
+  debug: msg="{{ mysql_secret_pass.stdout }}"
+  when: (ansible_distribution == "CentOS") and (mysql_secret.stat.exists)
+  tags:
+    - mysql_generated_pass
+    - debug
+
+# - name: stop MySQL (before skip grant tables)
+#   service: name=mysql state=stopped
+#   when: (GALERA_CONFIG.master_node == ansible_ssh_host)
+#   tags:
+#     - debug
+
+# - name: Start the MySQL server w/o password
+#   shell: mysqld_safe --skip-grant-tables --skip-networking &
+#   when: (GALERA_CONFIG.master_node == ansible_ssh_host)
+#   tags:
+#     - debug
+
+# - name: set root password first time (centos only)
+#   shell: mysql mysql -u root -e "UPDATE user SET password=PASSWORD('{{ MYSQL_PASS_ROOT }}') WHERE User='root'; FLUSH PRIVILEGES;"
+#   when: (GALERA_CONFIG.master_node == ansible_ssh_host) and (ansible_distribution == "CentOS")
+#   tags:
+#     - debug
+#     - db
+#     - password
+
+- name: notify user to manually change root password on master node
+  debug: msg="NOTICE You must now manually update the root password using these commmands, then run Ansible 2 more times. [ mysql -u root -p{{ mysql_secret_pass.stdout | default(None) }} ], then [ SET PASSWORD FOR 'root'@'localhost' = PASSWORD('{{ MYSQL_PASS_ROOT }}'); ]"
+  when: (GALERA_CONFIG.master_node == ansible_ssh_host) and (ansible_distribution == "CentOS")
+  tags:
+    - CentOS-bullcrap
+
+- name: set root password
+  mysql_user: name=root host={{ item }} password={{ MYSQL_PASS_ROOT }} login_user=root login_password={{ MYSQL_PASS_ROOT }} check_implicit_admin=yes priv="*.*:ALL,GRANT"
+  with_items: MYSQL_ALLOWED_HOSTS
+  tags:
+    - config
+    - db
+    - password
+
+- name: set sst password
+  mysql_user: name=sst host={{ item }} password={{ MYSQL_PASS_SST }} login_user=root login_password={{ MYSQL_PASS_ROOT }} check_implicit_admin=yes priv="*.*:ALL,GRANT" state=present
+  with_items: MYSQL_ALLOWED_HOSTS
+  tags:
+    - config
+    - db
+    - password
+
+- name: create galera_health user
+  mysql_user: name=galera_health host={{ item }} password={{ MYSQL_PASS_GALERA_HEALTH }} login_user=root login_password={{ MYSQL_PASS_ROOT }} check_implicit_admin=yes state=present
+  with_items: MYSQL_ALLOWED_HOSTS
+  tags:
+    - config
+    - db
+    - password
+    - health
+
+- name: remove .mysql_secret if it exists
+  file: path=/root/.mysql_secret state=absent
+  when: (ansible_distribution == "CentOS") and (mysql_secret.stat.exists)
+  tags:
+    - config
+    - db
+    - password
+
+- name: check cluster size with command
+  shell: mysql -u root -p{{ MYSQL_PASS_ROOT }} -e "SHOW STATUS LIKE 'wsrep_cluster_size';"
+  register: cluster_size
+  tags:
+    - config
+    - db
+
+- name: display cluster size
+  debug: msg="{{ cluster_size.stdout }}"
+  tags:
+    - config
+    - db
+
+- name: secure mysql on Ubuntu
+  shell: "{{ item }}"
+  with_items:
+    - mysqld_safe &
+    # - mysql_secure_installation
+  when: ansible_distribution == "Ubuntu"
+  tags:
+    - config
+    - db

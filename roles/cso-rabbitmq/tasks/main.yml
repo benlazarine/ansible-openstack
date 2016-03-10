@@ -1,0 +1,126 @@
+---
+# This role installs Galera Cluster based on MySQL 5.6.  This role assumes that one is installing galera on a three node cluster
+
+- name: gather os specific variables
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
+    - "{{ ansible_distribution }}.yml"
+    - "{{ ansible_os_family }}.yml"
+  tags:
+    - vars
+
+- name: add gnupg key for codership repo
+  shell: "{{ item }}"
+  with_items:
+    - wget https://www.rabbitmq.com/rabbitmq-signing-key-public.asc
+    - apt-key add rabbitmq-signing-key-public.asc
+  when: ansible_distribution == "Ubuntu"
+  tags:
+    - install
+
+- name: add rabbitmq repo
+  apt_repository: repo='deb http://www.rabbitmq.com/debian/ testing main' state=present
+  when: ansible_distribution == "Ubuntu"
+  tags:
+    - install
+
+- name: update cache again after repo update
+  apt: update_cache=yes
+  when: ansible_distribution == "Ubuntu"
+  tags:
+    - install
+    - updates
+
+- name: install packages required for rabbitmq
+  action: >
+    {{ ansible_pkg_mgr }} name={{ item }} state=present
+  with_items: RABBITMQ.packages
+  tags:
+    - install
+
+- name: stop rabbitmq after install
+  service: name={{ RABBITMQ.service }} state=stopped
+  tags:
+    - stop-service
+
+- name: get erlang cookie from master node
+  fetch: src=/var/lib/rabbitmq/.erlang.cookie dest=/tmp/rmq-secret flat=yes
+  when: RABBITMQ_CONFIG.master_node == ansible_ssh_host
+  tags:
+    - shared-secret
+    - config
+    - server
+
+- name: push shared secret to all non-master nodes
+  copy: src=/tmp/rmq-secret dest=/var/lib/rabbitmq/.erlang.cookie owner=rabbitmq group=rabbitmq mode=0400
+  when: RABBITMQ_CONFIG.master_node != ansible_ssh_host
+  tags:
+    - shared-secret
+    - clients
+
+- name: remove temporary erlang cookie from master node
+  local_action: file dest=/tmp/rmq-secret state=absent
+  run_once: true
+  tags:
+    - shared-secret
+
+- name: start rabbitmq daemon on all nodes
+  service: name={{ RABBITMQ.service }} state=started enabled=yes
+  tags:
+    - start-service
+
+- name: reset rabbitmq server (just in case)
+  shell: "{{ RABBITMQ.command }} {{ item }}"
+  with_items:
+    - stop_app
+    - reset
+    - stop
+  tags:
+    - reset
+
+- name: start rabbitmq daemon on all nodes again
+  service: name={{ RABBITMQ.service }} state=started enabled=yes
+  tags:
+    - start-service
+
+- name: bootstrap rabbit cluster on nodes other than master
+  shell: "{{ RABBITMQ.command }} {{ item }}"
+  with_items:
+    - stop_app
+    - "join_cluster rabbit@{{ RABBITMQ_CONFIG.master_node_hostname }}"
+    - start_app
+  when: RABBITMQ_CONFIG.master_node != ansible_ssh_host
+  tags:
+    - start
+    - bootstrap
+
+- name: check cluster status with command
+  shell: "{{ RABBITMQ.command }} cluster_status"
+  register: cluster_status
+  tags:
+    - status
+
+- name: display cluster status
+  debug: msg="{{ cluster_status }}"
+  tags:
+    - status
+
+- name: switch from disk to ram 
+  shell: "{{ RABBITMQ.command }} {{ item }}"
+  when: (RABBITMQ_CONFIG.node_type_ram) and (RABBITMQ_CONFIG.master_node == ansible_ssh_host)
+  with_items:
+    - stop_app
+    - "change_cluster_node_type ram"
+    - start_app
+  tags:
+    - ram
+    - disk
+    - node_type
+
+- name: enable HA for all nodes and load balancing
+  shell: "rabbitmqctl set_policy ha-all \'^(?!amq\\.).*\' \'{\"ha-mode\": \"all\"}\'"
+  when: RABBITMQ_CONFIG.HA
+  tags:
+    - ha
+

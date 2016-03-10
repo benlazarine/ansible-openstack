@@ -1,0 +1,15 @@
+# default on
+# description checks health of galera
+service galera_health
+{
+    flags           = REUSE
+    socket_type     = stream
+    port            = 9200
+    wait            = no
+    user            = nobody
+    server          = /opt/galera/galera_health
+    log_on_failure  += USERID
+    disable         = no
+    only_from       = 127.0.0.1 10.140.65.0/24 128.196.172.227 128.196.38.0/24
+    per_source      = UNLIMITED
+}

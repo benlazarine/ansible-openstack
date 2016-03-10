@@ -1,0 +1,30 @@
+---
+
+# New in Ansible 2.0
+# - name: disable selinux for mysqld
+#   selinux_permissive: name=mysqld_t permissive=true
+#   tags:
+#     - selinux
+
+- name: disable selinux
+  selinux: state=disabled
+  tags: selinux
+
+- name: enable codership repo in yum
+  template: src=galera.repo.j2 dest=/etc/yum.repos.d/galera.repo
+  tags:
+    - install
+
+# When installing Galera Cluster for MySQL on CentOS, versions 6 and 7, you may encounter a transaction check error that blocks the installation.
+# Like this:
+# Transaction Check Error:
+# file /usr/share/mysql/czech/errmsg.sys from install
+# mysql-wsrep-server-5.6-5.6.23-25.10.e16.x86_64 conflicts
+# with file from package mysql-libs-5.1.73-.3.e16_5.x86_64
+# - name: 
+#   shell: yum upgrade -y mysql-wsrep-shared-5.5 -x mysql-wsrep-shared-5.6
+#   ignore_errors: yes
+#   tags: install
+
+# - name: set up pip
+#   shell: easy_install pip

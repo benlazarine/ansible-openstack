@@ -1,0 +1,76 @@
+---
+
+- name: disable keystone autostart
+  shell: echo "manual" > /etc/init/keystone.override
+  tags:
+    - install
+
+- name: install keystone dependencies
+  apt: name={{ item }} state=present
+  with_items:
+    - keystone
+    - apache2
+    - libapache2-mod-wsgi
+    - memcached
+    - python-memcache
+  tags:
+    - install
+
+- name: ensure that keystone is not running
+  service: name=keystone state=stopped enabled=no
+  tags:
+    - install
+
+- name: template keystone.conf
+  template: src="{{ KEYSTONE_CONFIG.keystone_conf.template }}" dest="{{ KEYSTONE_CONFIG.keystone_conf.dest }}" backup=yes
+  tags:
+    - keystone
+    - template
+    - config
+
+- name: populate identity service database
+  shell: su -s /bin/sh -c "keystone-manage db_sync" keystone
+  tags:
+    - identity
+    - db_sync
+
+- name: run pki_setup on master node
+  command: /usr/bin/keystone-manage pki_setup --keystone-user keystone --keystone-group keystone
+  delegate_to: "{{ RABBITMQ_CONFIG.master_node }}"
+  run_once: true
+  tags:
+    - pki_setup
+    - ssl-certs
+
+- name: rsync /etc/keystone/ssl directory from master to all slave nodes
+  synchronize: src=/etc/keystone/ssl dest=/etc/keystone/ recursive=yes delete=yes
+  delegate_to: "{{ RABBITMQ_CONFIG.master_node }}"
+  tags:
+    - ssl-certs
+
+- name: set apache server name
+  lineinfile: dest=/etc/apache2/apache2.conf regexp='^# Global configuration' insertafter='^# Global configuration ' line='ServerName {{ ansible_ssh_host }}' backrefs=yes state=present backup=yes
+  tags:
+    - apache
+
+- name: template wsgi-keystone.conf
+  template: src=wsgi-keystone.conf.j2 dest=/etc/apache2/sites-available/wsgi-keystone.conf backup=yes
+  tags:
+    - keystone
+    - template
+
+- name: enable site
+  file: src=/etc/apache2/sites-available/wsgi-keystone.conf dest=/etc/apache2/sites-enabled/wsgi-keystone.conf state=link
+  tags:
+    - apache
+
+- name: restart apache2
+  service: name=apache2 state=restarted enabled=yes
+  tags:
+    - apache
+
+- name: remove /var/lib/keystone/keystone.db
+  file: path=/var/lib/keystone/keystone.db state=absent
+  tags:
+    - cleanup
+

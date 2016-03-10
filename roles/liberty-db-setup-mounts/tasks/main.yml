@@ -1,0 +1,25 @@
+---
+
+- name: create filesystem on separate drive
+  filesystem: fstype=ext4 dev="{{ CONTROLLERS.mysql_mnt }}"
+  tags:
+    - disk
+    - mkfs
+
+- name: create mysql dir
+  file: path=/var/lib/mysql state=directory mode=0755
+  tags:
+    - db
+
+- name: mount separate drive for MySQL database data
+  mount: name=/var/lib/mysql src="{{ CONTROLLERS.mysql_mnt }}" fstype=ext4 state=mounted
+  tags:
+    - disk
+    - mount
+
+- name: install mysql dependencies
+  apt: name={{ item }} state=latest
+  with_items:
+    - python-pymysql
+  tags:
+    - install

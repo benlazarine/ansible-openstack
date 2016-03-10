@@ -1,0 +1,132 @@
+global
+	log /dev/log	local0
+	# log /dev/log	local1 notice
+	chroot /var/lib/haproxy
+	user haproxy
+	group haproxy
+	daemon
+	maxconn	5000
+
+defaults
+	log	global
+	maxconn	9000
+	option	redispatch
+	retries	3
+	mode	http
+	#option	httplog
+	#option	dontlognull
+        #contimeout 5000
+        #clitimeout 50000
+        #srvtimeout 50000
+        timeout connect 10s
+        timeout client 1m
+        timeout server 1m
+        timeout check 10s
+	errorfile 400 /etc/haproxy/errors/400.http
+	errorfile 403 /etc/haproxy/errors/403.http
+	errorfile 408 /etc/haproxy/errors/408.http
+	errorfile 500 /etc/haproxy/errors/500.http
+	errorfile 502 /etc/haproxy/errors/502.http
+	errorfile 503 /etc/haproxy/errors/503.http
+	errorfile 504 /etc/haproxy/errors/504.http
+
+listen keystone_admin_cluster
+        bind {{ HA_PROXY_PUBLIC_IP }}:35357
+        balance  source
+        option  tcpka
+        option  httpchk
+        option  tcplog
+        server controller1 {{ HA_PROXY_CONFIG.controller1 }}:35357 check inter 2000 rise 2 fall 5
+        server controller2 {{ HA_PROXY_CONFIG.controller2 }}:35357 check inter 2000 rise 2 fall 5
+        server controller3 {{ HA_PROXY_CONFIG.controller3 }}:35357 check inter 2000 rise 2 fall 5
+
+listen keystone_public_internal_cluster
+        bind {{ HA_PROXY_PUBLIC_IP }}:5000
+        balance  source
+        option  tcpka
+        option  httpchk
+        option  tcplog
+        server controller1 {{ HA_PROXY_CONFIG.controller1 }}:5000 check inter 2000 rise 2 fall 5
+        server controller2 {{ HA_PROXY_CONFIG.controller2 }}:5000 check inter 2000 rise 2 fall 5
+        server controller3 {{ HA_PROXY_CONFIG.controller3 }}:5000 check inter 2000 rise 2 fall 5
+
+listen nova_compute_api_cluster
+        bind {{ HA_PROXY_PUBLIC_IP }}:8774
+        #balance  source
+        balance roundrobin
+        option  tcpka
+        option  httpchk
+        option  tcplog
+        server controller1 {{ HA_PROXY_CONFIG.controller1 }}:8774 check inter 2000 rise 2 fall 5
+        server controller2 {{ HA_PROXY_CONFIG.controller2 }}:8774 check inter 2000 rise 2 fall 5
+        server controller3 {{ HA_PROXY_CONFIG.controller3 }}:8774 check inter 2000 rise 2 fall 5
+
+listen nova_metadata_api_cluster
+        bind {{ HA_PROXY_PUBLIC_IP }}:8775
+        #balance  source
+        balance roundrobin
+        option  tcpka
+        option  tcplog
+        server controller1 {{ HA_PROXY_CONFIG.controller1 }}:8775 check inter 2000 rise 2 fall 5
+        server controller2 {{ HA_PROXY_CONFIG.controller2 }}:8775 check inter 2000 rise 2 fall 5
+        server controller3 {{ HA_PROXY_CONFIG.controller3 }}:8775 check inter 2000 rise 2 fall 5
+
+listen galera_cluster
+	bind {{ HA_PROXY_PUBLIC_IP }}:3306
+	mode tcp
+	#balance  source
+	option  tcplog
+	balance roundrobin
+	#option  httpchk
+	server controller1 {{ HA_PROXY_CONFIG.controller1 }}:3306 check port 9200 inter 12000 rise 2 fall 5
+	server controller2 {{ HA_PROXY_CONFIG.controller2 }}:3306 check port 9200 inter 12000 rise 2 fall 5 backup
+	server controller3 {{ HA_PROXY_CONFIG.controller3 }}:3306 check port 9200 inter 12000 rise 2 fall 5 backup
+
+listen galera_cluster_keystone
+	bind {{ HA_PROXY_PUBLIC_IP }}:3308
+	mode tcp
+	#balance  source
+	option  tcplog
+	balance roundrobin
+	option  httpchk
+	server controller2 {{ HA_PROXY_CONFIG.controller2 }}:3306 check port 9200 inter 12000 rise 2 fall 5 
+	server controller3 {{ HA_PROXY_CONFIG.controller3 }}:3306 check port 9200 inter 12000 rise 2 fall 5 backup
+	server controller1 {{ HA_PROXY_CONFIG.controller1 }}:3306 check port 9200 inter 12000 rise 2 fall 5 backup
+
+listen galera_cluster_neutron
+	bind {{ HA_PROXY_PUBLIC_IP }}:3309
+	mode tcp
+	#balance  source
+	option  tcplog
+	balance roundrobin
+	option  httpchk
+	server controller3 {{ HA_PROXY_CONFIG.controller3 }}:3306 check port 9200 inter 12000 rise 2 fall 5
+	server controller1 {{ HA_PROXY_CONFIG.controller1 }}:3306 check port 9200 inter 12000 rise 2 fall 5 backup
+	server controller2 {{ HA_PROXY_CONFIG.controller2 }}:3306 check port 9200 inter 12000 rise 2 fall 5 backup
+
+listen glance_api_cluster
+        bind {{ HA_PROXY_PUBLIC_IP }}:9292
+        balance  source
+        option  tcpka
+        option  httpchk
+        option  tcplog
+        timeout server 15m
+        server glance {{ GLANCE_NODE }}:9292 check inter 2000 rise 2 fall 5
+
+listen glance_registry_cluster
+        bind {{ HA_PROXY_PUBLIC_IP }}:9191
+        balance  source
+        option  tcpka
+        option  tcplog
+        timeout server 15m
+        server glance {{ GLANCE_NODE }}:9191 check inter 2000 rise 2 fall 5
+
+listen neutron_api_cluster
+        bind {{ HA_PROXY_PUBLIC_IP }}:9696
+        balance  source
+        option  tcpka
+        option  httpchk
+        option  tcplog
+        server controller1 {{ HA_PROXY_CONFIG.controller1 }}:9696 check inter 2000 rise 2 fall 5
+        server controller2 {{ HA_PROXY_CONFIG.controller2 }}:9696 check inter 2000 rise 2 fall 5
+        server controller3 {{ HA_PROXY_CONFIG.controller3 }}:9696 check inter 2000 rise 2 fall 5

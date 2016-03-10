@@ -1,0 +1,44 @@
+---
+
+- name: install nova dependencies
+  apt: name={{ item }} state=present
+  with_items:
+    - nova-api
+    - nova-cert
+    - nova-conductor
+    - nova-consoleauth
+    - nova-novncproxy
+    - nova-scheduler
+    - python-novaclient
+  tags:
+    - install
+
+- name: template nova.conf
+  template: src="{{ NOVA_CONFIG.nova_conf.template }}" dest="{{ NOVA_CONFIG.nova_conf.dest }}" backup=yes
+  tags:
+    - nova
+    - template
+    - config
+
+- name: populate nova service database
+  shell: su -s /bin/sh -c "nova-manage db sync" nova
+  tags:
+    - nova
+    - db_sync
+
+- name: restart compute services
+  service: name={{ item }} state=restarted enabled=yes
+  with_items:
+    - nova-api
+    - nova-cert
+    - nova-consoleauth
+    - nova-scheduler
+    - nova-conductor
+    - nova-novncproxy
+  tags:
+    - compute-service-restart
+
+- name: remove /var/lib/nova/nova.sqlite
+  file: path=/var/lib/nova/nova.sqlite state=absent
+  tags:
+    - cleanup

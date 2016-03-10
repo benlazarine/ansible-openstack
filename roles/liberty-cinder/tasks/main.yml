@@ -1,0 +1,42 @@
+---
+
+- name: install cinder dependencies
+  apt: name={{ item }} state=present
+  with_items:
+    - cinder-api
+    - cinder-scheduler
+    - python-cinderclient
+  tags:
+    - install
+
+- name: template cinder.conf
+  template: src="{{ CINDER_CONFIG.cinder_conf.template }}" dest="{{ CINDER_CONFIG.cinder_conf.dest }}" backup=yes
+  tags:
+    - cinder
+    - template
+    - config
+
+- name: populate cinder service database
+  shell: su -s /bin/sh -c "cinder-manage db sync" cinder
+  tags:
+    - cinder
+    - db_sync
+
+- name: restart nova-api services
+  service: name=nova-api state=restarted enabled=yes
+  tags:
+    - compute
+    - nova-api-restart
+
+- name: restart block storage services
+  service: name={{ item }} state=restarted enabled=yes
+  with_items:
+    - cinder-scheduler
+    - cinder-api
+  tags:
+    - block-storage-service-restart
+
+- name: remove /var/lib/cinder/cinder.sqlite
+  file: path=/var/lib/cinder/cinder.sqlite state=absent
+  tags:
+    - cleanup

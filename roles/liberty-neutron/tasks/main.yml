@@ -1,0 +1,248 @@
+---
+######################
+# Controller Node(s) #
+######################
+- name: install neutron controller setup dependencies
+  apt: name={{ item[0] }} state=present
+  delegate_to: "{{ item[1] }}"
+  with_nested:
+    - "{{ NEUTRON_CONFIG.controller.packages }}"
+    - "{{ CONTROLLER_NODES }}"
+  tags:
+    - install
+    - controller
+
+- name: template neutron.conf to controller node(s)
+  template: src="{{ NEUTRON_CONFIG.controller.neutron_conf.template }}" dest="{{ NEUTRON_CONFIG.controller.neutron_conf.dest }}" backup=yes
+  delegate_to: "{{ item }}"
+  with_items: "{{ CONTROLLER_NODES }}"
+  tags:
+    - neutron
+    - template
+    - config
+    - controller
+
+- name: template ml2_conf.ini to controller node(s)
+  template: src="{{ NEUTRON_CONFIG.controller.ml2_conf_ini.template }}" dest="{{ NEUTRON_CONFIG.controller.ml2_conf_ini.dest }}" backup=yes
+  delegate_to: "{{ item }}"
+  with_items: "{{ CONTROLLER_NODES }}"
+  tags:
+    - neutron
+    - template
+    - config
+    - controller
+
+- name: populate neutron service database
+  shell: su -s /bin/sh -c "neutron-db-manage --config-file /etc/neutron/neutron.conf --config-file /etc/neutron/plugins/ml2/ml2_conf.ini upgrade head" neutron
+  delegate_to: "{{ item }}"
+  with_items: "{{ CONTROLLER_NODES }}"
+  tags:
+    - neutron
+    - db_sync
+    - controller
+
+- name: restart neutron server on controller node(s)
+  service: name=neutron-server state=restarted enabled=yes
+  delegate_to: "{{ item }}"
+  with_items: "{{ CONTROLLER_NODES }}"
+  tags:
+    - neutron-service-restart
+    - controller
+
+########################
+# Neutron Network Node #
+########################
+
+- name: install neutron network node setup dependencies
+  apt: name={{ item }} state=present
+  with_items: "{{ NEUTRON_CONFIG.neutron_network_node.packages }}"
+  tags:
+    - install
+    - network-node
+
+- name: enable 8021q kernel module on network node
+  modprobe: name=8021q state=present
+  tags:
+    - kernel
+    - modprobe
+    - network-node
+
+- name: change sysctl for neutron on network node
+  sysctl: name="{{ item.key }}" value="{{ item.value }}" state=present reload=yes
+  with_dict: 
+    net.ipv4.ip_forward: 1
+    net.ipv4.conf.all.rp_filter: 0
+    net.ipv4.conf.default.rp_filter: 0
+  tags:
+    - sysctl
+    - networking
+    - network-node
+
+- name: template neutron.conf to network node
+  template: src="{{ NEUTRON_CONFIG.neutron_network_node.neutron_conf.template }}" dest="{{ NEUTRON_CONFIG.neutron_network_node.neutron_conf.dest }}" backup=yes
+  tags:
+    - neutron
+    - template
+    - config
+    - network-node
+
+- name: template ml2_conf.ini to network node
+  template: src="{{ NEUTRON_CONFIG.neutron_network_node.ml2_conf_ini.template }}" dest="{{ NEUTRON_CONFIG.neutron_network_node.ml2_conf_ini.dest }}" backup=yes
+  tags:
+    - neutron
+    - template
+    - config
+    - network-node
+
+- name: template l3_agent.ini to network node
+  template: src="{{ NEUTRON_CONFIG.neutron_network_node.l3_agent_ini.template }}" dest="{{ NEUTRON_CONFIG.neutron_network_node.l3_agent_ini.dest }}" backup=yes
+  tags:
+    - neutron
+    - template
+    - config
+    - network-node
+
+- name: template dhcp_agent.ini to network node
+  template: src="{{ NEUTRON_CONFIG.neutron_network_node.dhcp_agent_ini.template }}" dest="{{ NEUTRON_CONFIG.neutron_network_node.dhcp_agent_ini.dest }}" backup=yes
+  tags:
+    - neutron
+    - template
+    - config
+    - network-node
+
+- name: template metadata_agent.ini to network node
+  template: src="{{ NEUTRON_CONFIG.neutron_network_node.metadata_agent_ini.template }}" dest="{{ NEUTRON_CONFIG.neutron_network_node.metadata_agent_ini.dest }}" backup=yes
+  tags:
+    - neutron
+    - template
+    - config
+    - network-node
+
+- name: restart neutron services on network node
+  service: name={{ item }} state=restarted enabled=yes
+  with_items:
+    - openvswitch-switch
+    - neutron-plugin-openvswitch-agent
+    - neutron-l3-agent
+    - neutron-dhcp-agent
+    - neutron-metadata-agent
+  tags:
+    - neutron-service-restart
+    - network-node
+
+###################
+# Compute Node(s) #
+###################
+
+- name: install compute node setup dependencies
+  apt: name={{ item[0] }} state=present
+  delegate_to: "{{ item[1] }}"
+  with_nested:
+    - "{{ NEUTRON_CONFIG.compute.packages }}"
+    - "{{ COMPUTE_NODES }}"
+  tags:
+    - install
+    - compute-node
+
+- name: enable 8021q kernel module on network node
+  modprobe: name=8021q state=present
+  delegate_to: "{{ item }}"
+  with_items: "{{ COMPUTE_NODES }}"
+  tags:
+    - kernel
+    - modprobe
+    - compute-node
+
+- name: change sysctl for neutron on compute nodes
+  sysctl: name="{{ item[0].name }}" value="{{ item[0].option }}" state=present reload=yes
+  delegate_to: "{{ item[1] }}"
+  with_nested:
+    - "{{ NEUTRON_CONFIG.compute.sysctl_modules }}"
+    - "{{ COMPUTE_NODES }}"
+  tags:
+    - sysctl
+    - networking
+    - compute-node
+
+- name: template neutron.conf to compute nodes
+  template: src="{{ NEUTRON_CONFIG.compute.neutron_conf.template }}" dest="{{ NEUTRON_CONFIG.compute.neutron_conf.dest }}" backup=yes
+  delegate_to: "{{ item }}"
+  with_items: "{{ COMPUTE_NODES }}"
+  tags:
+    - neutron
+    - template
+    - config
+    - compute-node
+
+- name: template ml2_conf.ini to compute nodes
+  template: src="{{ NEUTRON_CONFIG.compute.ml2_conf_ini.template }}" dest="{{ NEUTRON_CONFIG.compute.ml2_conf_ini.dest }}" backup=yes
+  delegate_to: "{{ item }}"
+  with_items: "{{ COMPUTE_NODES }}"
+  tags:
+    - neutron
+    - template
+    - config
+    - compute-node
+
+- name: template l3_agent.ini to compute nodes
+  template: src="{{ NEUTRON_CONFIG.compute.l3_agent_ini.template }}" dest="{{ NEUTRON_CONFIG.compute.l3_agent_ini.dest }}" backup=yes
+  delegate_to: "{{ item }}"
+  with_items: "{{ COMPUTE_NODES }}"
+  tags:
+    - neutron
+    - template
+    - config
+    - compute-node
+
+- name: template metadata_agent.ini to compute nodes
+  template: src="{{ NEUTRON_CONFIG.compute.metadata_agent_ini.template }}" dest="{{ NEUTRON_CONFIG.compute.metadata_agent_ini.dest }}" backup=yes
+  delegate_to: "{{ item }}"
+  with_items: "{{ COMPUTE_NODES }}"
+  tags:
+    - neutron
+    - template
+    - config
+    - compute-node
+
+- name: restart neutron services on compute nodes
+  service: name={{ item[0] }} state=restarted enabled=yes
+  delegate_to: "{{ item[1] }}"
+  with_nested:
+    - "{{ NEUTRON_CONFIG.compute.services }}"
+    - "{{ COMPUTE_NODES }}"
+  tags:
+    - neutron-service-restart
+    - compute-node
+
+#########################
+# Configure OVS Bridges #
+#########################
+- name: load openvswitch module
+  modprobe: name=openvswitch state=present
+  tags:
+    - ovs
+
+- name: create all bridges on network node
+  openvswitch_bridge: bridge="{{ item.value.bridge }}" state=present
+  with_dict: "{{ NEUTRON_CONFIG.interfaces }}"
+  tags:
+    - ovs
+
+- name: create the ports on all bridges on network node
+  openvswitch_port: bridge="{{ item.value.bridge }}" port="{{ item.value.port }}" state=present
+  with_dict: "{{ NEUTRON_CONFIG.interfaces }}" 
+  tags:
+    - ovs
+
+# At this point, one should bring up all interfaces manually on all compute and neutron nodes
+# sleep 5 (if at very end)
+# ip link set br-* up
+# ip link set eth-* up
+
+########################
+# Neutron Network Node #
+########################
+- name: remove /var/lib/neutron/neutron.sqlite
+  file: path=/var/lib/neutron/neutron.sqlite state=absent
+  tags:
+    - cleanup

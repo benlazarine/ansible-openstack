@@ -1,0 +1,7 @@
+---
+CLOUD_USER: ubuntu
+
+PGKS_TO_REMOVE:
+  - cloud-guest-utils
+  - cloud-init
+  - cloud-initramfs-dyn-netconf

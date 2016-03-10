@@ -1,0 +1,63 @@
+---
+
+- name: create filesystem on separate drive
+  filesystem: fstype=ext4 dev={{ GLANCE_CONFIG.glance_mnt }}
+  tags:
+    - disk
+    - mkfs
+
+- name: create glance dir
+  file: path=/var/lib/glance state=directory mode=0755
+  tags:
+    - glance-dir
+    - disk
+
+- name: mount separate drive for glance image storage service
+  mount: name=/var/lib/glance src={{ GLANCE_CONFIG.glance_mnt }} fstype=ext4 state=mounted
+  tags:
+    - disk
+    - mount
+    - glance-dir
+
+- name: install glance dependencies
+  apt: name={{ item }} state=present
+  with_items:
+    - glance
+    - python-glanceclient
+  tags:
+    - install
+
+- name: template glance-api.conf
+  template: src="{{ GLANCE_CONFIG.glance_api_conf.template }}" dest="{{ GLANCE_CONFIG.glance_api_conf.dest }}" backup=yes
+  tags:
+    - glance-api
+    - template
+    - config
+
+- name: template glance-registry.conf
+  template: src="{{ GLANCE_CONFIG.glance_registry_conf.template }}" dest="{{ GLANCE_CONFIG.glance_registry_conf.dest }}" backup=yes
+  tags:
+    - glance-registry
+    - template
+    - config
+
+- name: populate image service database
+  shell: su -s /bin/sh -c "glance-manage db_sync" glance
+  tags:
+    - image
+    - db_sync
+
+- name: restart glance-registry
+  service: name=glance-registry state=restarted enabled=yes
+  tags:
+    - glance-registry
+
+- name: restart glance-api
+  service: name=glance-api state=restarted enabled=yes
+  tags:
+    - glance-api
+
+- name: remove /var/lib/glance/glance.sqlite
+  file: path=/var/lib/glance/glance.sqlite state=absent
+  tags:
+    - cleanup

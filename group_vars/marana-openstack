@@ -1,0 +1,55 @@
+---
+
+##################
+# Liberty Common #
+##################
+OPENSTACK_NODES: "{{ groups['openstack'] }}"
+MASTER_NODE: "{{ HA_PROXY_CONFIG.controller1 }}"
+CONTROLLER_NODES: "{{ groups['controllers'] }}"
+HAPROXY_NODE: "{{ groups['haproxy'][0] }}"
+GLANCE_NODE: "{{ groups['glance'][0] }}"
+NEUTRON_NODE: "{{ groups['neutron'] }}"
+COMPUTE_NODES: "{{ groups['compute'] }}"
+DVR_NETWORK_NODES: "{{ groups['neutron'] | union(groups['compute']) }}"
+SSH_PORT: 22
+KEYSTONE_REGION: RegionOne
+
+# This works!! From neutron task main
+# "groups['{{ COMPUTE_NODES }}']"
+
+###########
+# HAProxy #
+###########
+# NOTE: the reason for this is that internal configs should use ip
+# but the catalog should use the public address, which may be useful for
+# end-uesrs
+HA_PROXY_PUBLIC_IP: 10.0.2.1
+
+HA_PROXY_CONFIG:
+  node: 10.0.2.1
+  master_controller_node_hostname: controller1
+  controllers:
+    - 10.0.2.2
+    - 10.0.2.3
+    - 10.0.2.4
+  controller1: 10.0.2.2
+  controller2: 10.0.2.3
+  controller3: 10.0.2.4
+
+####################
+# Network Creation #
+####################
+NEUTRON_NETWORKS:
+  ext_net:
+    name: "ext-net"
+    network: 203.0.113.0/24
+    gateway: 203.0.113.1
+    start: 203.0.113.2
+    end: 203.0.113.3
+  project_nets:
+    atmoadmin:
+      network: 172.16.0.0/24
+      gateway: 172.16.0.1
+    atmo:
+      network: 172.16.1.0/24
+      gateway: 172.16.1.1

@@ -1,0 +1,141 @@
+---
+- name: ensure basic networking tools are installed
+  apt: pkg={{ item }} state=present
+  with_items:
+    - vlan
+  tags:
+    - install
+
+- name: create directory
+  file:
+    path: "{{ network_interface_path }}"
+    state: directory
+  when: network_interfaces
+  tags:
+    - config
+
+- name: all interfaces
+  template:
+    src: all_interfaces.j2
+    dest: "{{ network_all_interfaces_path }}"
+    backup: yes
+  # notify: restart
+  when: network_interfaces
+  tags:
+    - networking
+
+- name: configure management interface
+  template:
+    src: mgmt.j2
+    dest: "{{ network_interface_path }}/device-{{ item.value.device }}"
+  with_dict: HOSTS[ inventory_hostname ]
+  when: item.key == "mgmt"
+  tags: debug
+
+- name: configure external bridge interface
+  template:
+    src: external_bridge.j2
+    dest: "{{ network_interface_path }}/device-{{ item.value.device }}"
+  with_dict: HOSTS[ inventory_hostname ]
+  when: item.key == "ext"
+  tags: debug
+
+- name: configure project tunnel vlan tagged interface
+  template:
+    src: vlan_tagged_interface.j2
+    dest: "{{ network_interface_path }}/device-{{ item.value.device }}"
+  with_dict: HOSTS[ inventory_hostname ]
+  when: item.key == "tun"
+  tags: debug
+
+- name: configure vlan project tunnel vlan tagged interface
+  template:
+    src: vlan_tagged_interface.j2
+    dest: "{{ network_interface_path }}/device-{{ item.value.device }}"
+  with_dict: HOSTS[ inventory_hostname ]
+  when: item.key == "vlan"
+  tags: debug
+
+- name: configure br-ex interface
+  template:
+    src: br_ext.j2
+    dest: "{{ network_interface_path }}/device-{{ item.value.device }}"
+  with_dict: HOSTS[ inventory_hostname ]
+  when: item.key == "brext"
+  tags: debug
+
+- name: configure br-tun interface
+  template:
+    src: br_tun.j2
+    dest: "{{ network_interface_path }}/device-{{ item.value.device }}"
+  with_dict: HOSTS[ inventory_hostname ]
+  when: item.key == "brtun"
+  tags: debug
+
+- name: configure br-vlan interface
+  template:
+    src: br_vlan.j2
+    dest: "{{ network_interface_path }}/device-{{ item.value.device }}"
+  with_dict: HOSTS[ inventory_hostname ]
+  when: item.key == "brvlan"
+  tags: debug
+
+- name: template /etc/hosts file for all openstack nodes
+  template: src=hosts.j2 dest=/etc/hosts
+  tags: hosts-file
+
+- name: template .ssh/config file on all openstack nodes
+  template: src=config.j2 dest=/root/.ssh/config backup=yes
+  tags: ssh-config
+
+- name: template local .ssh/config file
+  local_action: template src=config_local.j2 dest=~/.ssh/config2
+  run_once: true
+  tags: ssh-config
+
+- name: notify about local .ssh/config
+  debug: msg="Be sure to add the contents of ~/.ssh/config2 to your ~/.ssh/config !!"
+  run_once: true
+  tags: ssh-config
+
+# - name: list network interfaces
+#   command: "find {{ network_interface_path }} -type f"
+#   changed_when: no
+#   when: network_interfaces
+#   register: network_existing_files
+
+# - name: configurations
+#   template:
+#     src: device.j2
+#     dest: "{{ network_interface_path }}/device-{{ item.device }}-{{ item.family | default('inet') }}"
+#   with_items: network_interfaces
+#   register: network_configuration_result
+
+# - name: configured files
+#   set_fact:
+#     network_configured_files: >
+#       [{% for item in network_configuration_result.results | default([]) -%}
+#         u"{{ item.dest | default(item.path) }}"
+#         {{ '' if loop.last else ',' }}
+#       {%- endfor %}]
+
+# - name: remove configurations
+#   file:
+#     dest: "{{ item }}"
+#     state: absent
+#   when: >
+#     network_manage_devices
+#     and (item not in network_configured_files)
+#   with_items: network_existing_files.stdout_lines | default([])
+
+# - name: restart devices
+#   service:
+#     name: "{{ network_service }}"
+#     state: restarted
+#     arguments: "INTERFACE={{ item.0 }}"
+#   when: >
+#     (0 != item.1 | selectattr('changed') | list | length)
+#     and ((0 != item.1 | selectattr('item.auto', 'undefined') | list | length)
+#       or (true in item.1 | selectattr('item.auto') | list)
+#     )
+#   with_items: network_configuration_result.results | default([]) | groupby('item.device')

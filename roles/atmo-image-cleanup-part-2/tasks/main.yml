@@ -1,0 +1,26 @@
+---
+- name: gather os specific variables
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
+    - "{{ ansible_distribution }}.yml"
+    - "{{ ansible_os_family }}.yml"
+  tags: vars
+
+- name: uninstall cloud-init packages
+  action: >
+    {{ ansible_pkg_mgr }} name={{ item }} state=absent
+  with_items: PGKS_TO_REMOVE
+  tags: install
+
+- name: kill all tasks owned by the cloud user
+  command: pkill -u {{ CLOUD_USER }}
+  ignore_errors: yes
+
+- name: remove cloud user account
+  user: name={{ CLOUD_USER }} state=absent remove=yes
+  tags: user
+
+- name: disable selinux (centos only)
+  selinux: state=disabled
+  when: ansible_distribution == "CentOS"

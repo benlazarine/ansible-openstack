@@ -1,0 +1,48 @@
+---
+# tasks required to fix broken centos cloud images
+- name: diable required tty session to sudo
+  raw: sudo sed -i '/Defaults    requiretty/d' /etc/sudoers
+  when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+
+- name: install centos-release update to fix distro identification
+  yum: name=centos-release state=latest update_cache=yes
+  sudo: yes
+  when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+- name: wait for distribution name to change
+  wait_for: path=/etc/redhat-release search_regex=CentOS
+  when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+- name: see what distro it is
+  shell: cat /etc/redhat-release
+  register: result
+  when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+- name: see results
+  debug: var=result.stdout
+  when: ansible_distribution == "CentOS" or ansible_distribution == "RedHat"
+
+# - name: gather os specific variables
+#   include_vars: "{{ item }}"
+#   with_first_found:
+#     - "{{ ansible_distribution }}-{{ ansible_distribution_major_version}}.yml"
+#     - "{{ ansible_distribution }}.yml"
+#     - "{{ ansible_os_family }}.yml"
+#   tags: vars
+
+- name: make sure ssh directory exists
+  file: path=/root/.ssh/ state=directory mode="0700"
+  sudo: yes
+  tags: create-root-ssh-dir
+
+- name: remove .ssh/authorized_keys file
+  file: path=/root/.ssh/authorized_keys state=absent
+  sudo: yes
+  tags: clean-ssh
+
+- name: add ssh keys to authorized_keys
+  authorized_key: user=root key="{{ item }}" state=present
+  with_items: SSH_KEYS_ADD
+  sudo: yes
+  tags: add-ssh-keys

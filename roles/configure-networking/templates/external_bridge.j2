@@ -1,0 +1,7 @@
+# {{ ansible_managed }}
+
+auto {{ item.value.device }}
+iface {{ item.value.device }} inet {{ item.value.method }}
+  up ip link set dev $IFACE up
+  down ip link set dev $IFACE down
+

@@ -1,0 +1,83 @@
+- name: update cache first
+  apt: cache_valid_time=43200 update_cache=yes upgrade=dist
+  tags:
+    - updates
+    - first-update
+
+- name: install repository dependencies
+  apt: name={{ item }} state=latest
+  with_items:
+    - software-properties-common
+    - ubuntu-cloud-keyring
+  tags:
+    - install
+
+- name: add repo
+  apt_repository: repo='deb http://ubuntu-cloud.archive.canonical.com/{{ ansible_distribution | lower }} {{ ansible_distribution_release }}-updates/liberty main' state=present
+  tags:
+    - install
+
+- name: update cache again after repo update
+  apt: update_cache=yes
+  tags:
+    - updates
+
+- name: install common openstack dependencies
+  apt: name={{ item }} state=latest
+  with_items:
+    - git
+    - python-openstackclient
+    - tmux
+    - vim
+  tags:
+    - install
+
+- name: template openstack login footer (motd)
+  template: src=99-openstack-footer.j2 dest=/etc/update-motd.d/99-openstack-footer mode=0755
+  tags:
+    - motd
+
+- name: generate ssh keys for master host
+  user: name=root generate_ssh_key=yes ssh_key_bits=4096 ssh_key_file=.ssh/id_rsa
+  when: CONTROLLER_NODES[0] == inventory_hostname
+  tags:
+    - ssh-keys
+
+- name: retrieve remote ssh public key
+  fetch: dest="/tmp/" src="~/.ssh/{{ item }}" flat=yes
+  with_items:
+    - id_rsa
+    - id_rsa.pub
+  when: CONTROLLER_NODES[0] == inventory_hostname
+  tags:
+    - ssh-keys
+
+- name: distribute keys to all hosts
+  authorized_key: >
+    key="{{ lookup('file', '/tmp/id_rsa.pub') }}"
+    state=present
+    user=root
+  ignore_errors: yes
+  tags:
+    - ssh-keys
+
+- name: copy master's private key to all hosts
+  copy: src=/tmp/id_rsa dest=~/.ssh/id_rsa mode=0600
+  tags:
+    - ssh-keys
+
+- name: remove temp local pubkey copies
+  local_action: file dest="/tmp/{{ item }}" state=absent
+  with_items:
+    - id_rsa
+    - id_rsa.pub
+  when: CONTROLLER_NODES[0] == inventory_hostname
+  tags:
+    - ssh-keys
+
+- name: disable ipv6 on all nodes
+  sysctl: name="{{ item.name }}" value="{{ item.option }}" state=present reload=yes
+  with_items: COMMON.sysctl_modules
+  tags:
+    - sysctl
+    - all-nodes

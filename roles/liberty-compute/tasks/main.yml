@@ -1,0 +1,90 @@
+---
+
+- name: install compute node dependencies
+  apt: name={{ item }} state=present
+  with_items:
+    - nova-compute
+    - sysfsutils
+    - neutron-plugin-openvswitch
+    - neutron-plugin-ml2
+    - neutron-plugin-openvswitch-agent
+    - neutron-l3-agent
+    - neutron-metadata-agent
+    - python-neutronclient
+    - vlan
+  tags:
+    - install
+
+- name: template nova.conf
+  template: src="{{ NOVA_COMPUTE_CONFIG.nova_conf.template }}" dest="{{ NOVA_COMPUTE_CONFIG.nova_conf.dest }}" backup=yes
+  tags:
+    - nova
+    - compute
+    - template
+    - config
+
+- name: template nova-compute.conf
+  template: src="{{ NOVA_COMPUTE_CONFIG.nova_compute_conf.template }}" dest="{{ NOVA_COMPUTE_CONFIG.nova_compute_conf.dest }}" backup=yes
+  tags:
+    - nova
+    - compute
+    - template
+    - config
+
+- name: run command to check if cpu supports hardware acceleration
+  shell: egrep -c '(vmx|svm)' /proc/cpuinfo
+  register: cpu_hw_acc
+  tags:
+    - cpu
+    - vm
+
+- name: determine whether or not the compute node supports hardware acceleration for virtual machines
+  fail: msg="Setup cannot continue. This machine does not support virtualization (hardware acceleration is not available on the current chipset).  Therefore one must use QEMU instead of KVM"
+  when: cpu_hw_acc < 1
+  tags:
+    - cpu
+    - vm
+
+- name: run command to check if virtualization flag is enabled
+  shell: /usr/sbin/kvm-ok | /bin/grep 'disabled'
+  ignore_errors: yes
+  register: virtualization_flag
+  tags:
+    - cpu
+    - vm
+    - virtualization
+
+- name: determine whether or not the compute node has virtualization enabled in the BIOS
+  fail: msg="Setup cannot continue. Virtualization is not turned on in the bios."
+  when: virtualization_flag.stdout != ""
+  tags:
+    - cpu
+    - vm
+    - virtualization
+
+- name: restart nova-compute
+  service: name=nova-compute state=restarted enabled=yes
+  tags:
+    - nova-compute
+
+- name: load openvswitch module 
+  modprobe: name=openvswitch state=present
+  tags:
+    - ovs
+
+- name: create all bridges
+  openvswitch_bridge: bridge="{{ item.value.bridge }}" state=present
+  with_dict: "{{ NEUTRON_CONFIG.interfaces }}"
+  tags:
+    - ovs
+
+- name: create the ports on all bridges
+  openvswitch_port: bridge="{{ item.value.bridge }}" port="{{ item.value.port }}" state=present
+  with_dict: "{{ NEUTRON_CONFIG.interfaces }}" 
+  tags:
+    - ovs
+
+- name: remove /var/lib/nova/nova.sqlite
+  file: path=/var/lib/nova/nova.sqlite state=absent
+  tags:
+    - cleanup

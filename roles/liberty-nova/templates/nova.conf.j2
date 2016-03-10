@@ -1,0 +1,75 @@
+[DEFAULT]
+
+my_ip = {{ ansible_ssh_host }}
+
+network_api_class = nova.network.neutronv2.api.API
+security_group_api = neutron
+linuxnet_interface_driver = nova.network.linux_net.NeutronLinuxBridgeInterfaceDriver
+firewall_driver = nova.virt.firewall.NoopFirewallDriver
+
+dhcpbridge_flagfile=/etc/nova/nova.conf
+dhcpbridge=/usr/bin/nova-dhcpbridge
+logdir=/var/log/nova
+state_path=/var/lib/nova
+lock_path=/var/lock/nova
+force_dhcp_release=True
+libvirt_use_virtio_for_bridges=True
+verbose=True
+ec2_private_dns_show_ip=True
+api_paste_config=/etc/nova/api-paste.ini
+enabled_apis=ec2,osapi_compute,metadata
+
+enabled_apis=osapi_compute,metadata
+
+rpc_backend = rabbit
+
+auth_strategy = keystone
+
+debug = {{ NOVA_CONFIG.nova_conf.properties.debug | default(false) }}
+
+verbose = {{ NOVA_CONFIG.nova_conf.properties.verbose | default(false) }}
+
+[database]
+
+connection = {{ NOVA_CONFIG.nova_conf.properties.connection }}
+
+[oslo_messaging_rabbit]
+
+rabbit_host = {{ RABBITMQ_CONFIG.master_node }}
+rabbit_userid = {{ RABBITMQ_CONFIG.rabbit_userid }}
+rabbit_password = {{ RABBITMQ_CONFIG.rabbit_password }}
+
+[keystone_authtoken]
+
+# identity_uri = {{ NOVA_CONFIG.nova_conf.properties.auth_uri }}
+auth_uri = {{ NOVA_CONFIG.nova_conf.properties.auth_uri }}
+auth_url = {{ NOVA_CONFIG.nova_conf.properties.auth_url }}
+auth_plugin = password
+project_domain_id = default
+user_domain_id = default
+project_name = {{ KEYSTONE.service_tenant }}
+username = {{ NOVA_CONFIG.nova_conf.properties.admin_user }}
+password = {{ NOVA_CONFIG.nova_conf.properties.admin_password }}
+
+[neutron]
+url = {{ NOVA_CONFIG.nova_conf.properties.neutron_url }}
+auth_strategy = keystone
+admin_auth_url = {{ NOVA_CONFIG.nova_conf.properties.neutron_admin_auth_url }}
+admin_tenant_name = {{ KEYSTONE.service_tenant }}
+admin_username = {{ NOVA_CONFIG.nova_conf.properties.neutron_admin_username }}
+admin_password = {{ NOVA_CONFIG.nova_conf.properties.neutron_admin_password }}
+metadata_proxy_shared_secret = {{ METADATA_SECRET }}
+service_metadata_proxy = True
+
+[glance]
+
+host = {{ GLANCE_NODE }}
+
+[vnc]
+
+vncserver_listen = 0.0.0.0
+vncserver_proxyclient_address = $my_ip
+
+[oslo_concurrency]
+
+lock_path = /var/lib/nova/tmp

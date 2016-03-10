@@ -1,0 +1,8 @@
+---
+RABBITMQ:
+  packages:
+    - rabbitmq-server
+  service: rabbitmq-server
+  command: rabbitmqctl
+  HA: False
+  node_type: False

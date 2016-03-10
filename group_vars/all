@@ -1,0 +1,478 @@
+---
+
+COMMON:
+  sysctl_modules:
+    - { name: net.ipv6.conf.all.disable_ipv6, option: 1 }
+    - { name: net.ipv6.conf.default.disable_ipv6, option: 1 }
+    - { name: net.ipv6.conf.lo.disable_ipv6, option: 1 }
+
+############
+# Keystone #
+############
+KEYSTONE_CONFIG:
+  keystone_conf:
+    template: "keystone.conf.j2"
+    dest: "/etc/keystone/keystone.conf"
+    properties:
+      admin_token: "{{ ADMIN_TOKEN }}"
+      debug: True
+      verbose: true
+      connection: "mysql+pymysql://keystone:{{ KEYSTONE_DBPASS }}@{{ HA_PROXY_PUBLIC_IP }}/keystone"
+      # TODO LATER: setup a slave, readonly server
+      #slave_connection: ""
+      # TODO: specify the memcache server string; currently,
+      # does nothing until global cache is true
+      memcache_servers: "localhost:11211"
+KEYSTONE:
+  domain: default
+  service_tenant: "service"
+  env:
+    OS_TOKEN: "{{ ADMIN_TOKEN }}"
+    OS_URL: http://{{ HA_PROXY_PUBLIC_IP }}:35357/v3 
+    OS_IDENTITY_API_VERSION: 3
+  env_script:
+    project: service
+    username: admin
+    password: "{{ ADMIN_PASS }}"
+  users:
+    admin:
+      project: "service"
+      role: "admin"
+      description: "Administrator"
+      password: "{{ ADMIN_PASS }}"
+    atmoadmin:
+      project: "atmoadmin"
+      role: "admin"
+      description: "Atmosphere Administrator"
+      password: "{{ ATMOADMIN }}"
+    nova:
+      project: "service"
+      role: "admin"
+      description: "Nova User"
+      password: "{{ NOVA_PASS }}"
+    glance:
+      project: "service"
+      role: "admin"
+      description: "Glance User"
+      password: "{{ GLANCE_PASS }}"
+    cinder:
+      project: "service"
+      role: "admin"
+      description: "Cinder User"
+      password: "{{ CINDER_PASS }}"
+    neutron:
+      project: "service"
+      role: "admin"
+      description: "Neutron User"
+      password: "{{ NEUTRON_PASS }}"
+    heat:
+      project: "service"
+      role: "admin"
+      description: "Heat User"
+      password: "{{ HEAT_PASS }}"
+    ceilometer:
+      project: "service"
+      role: "admin"
+      description: "Ceilometer User"
+      password: "{{ CEILOMETER_PASS }}"
+  roles:
+    admin: admin
+    default: default
+  projects:
+    admin:
+      project: service
+      description: "All OpenStack Services"
+    default:
+      project: atmoadmin
+      description: "Atmo Administrator Project"
+  services:
+    keystone:
+      name: keystone
+      type: identity
+      description: "OpenStack Identity"
+      region: "{{ KEYSTONE_REGION }}"
+      publicurl: "http://{{ HA_PROXY_PUBLIC_IP }}:5000/v2.0"
+      adminurl: "http://{{ HA_PROXY_PUBLIC_IP }}:35357/v2.0"
+      internalurl: "http://{{ HA_PROXY_PUBLIC_IP }}:5000/v2.0"
+    nova:
+      name: nova
+      type: compute
+      description: "OpenStack Compute"
+      region: "{{ KEYSTONE_REGION }}"
+      publicurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8774/v2/%\\(tenant_id\\)s"
+      adminurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8774/v2/%\\(tenant_id\\)s"
+      internalurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8774/v2/%\\(tenant_id\\)s"
+    glance:
+      name: glance
+      type: image
+      description: "OpenStack Image Service"
+      region: "{{ KEYSTONE_REGION }}"
+      publicurl: "http://{{ HA_PROXY_PUBLIC_IP }}:9292"
+      adminurl: "http://{{ HA_PROXY_PUBLIC_IP }}:9292"
+      internalurl: "http://{{ HA_PROXY_PUBLIC_IP }}:9292"
+    cinder:
+      name: cinder
+      type: volume
+      description: "OpenStack Block Storage"
+      region: "{{ KEYSTONE_REGION }}"
+      publicurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8776/v1/%\\(tenant_id\\)s"
+      adminurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8776/v1/%\\(tenant_id\\)s"
+      internalurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8776/v1/%\\(tenant_id\\)s"
+    cinderv2:
+      name: cinderv2
+      type: volumev2
+      description: "OpenStack Block Storage v2"
+      region: "{{ KEYSTONE_REGION }}"
+      publicurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8776/v2/%\\(tenant_id\\)s"
+      adminurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8776/v2/%\\(tenant_id\\)s"
+      internalurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8776/v2/%\\(tenant_id\\)s"
+    neutron:
+      name: neutron
+      type: network
+      description: "OpenStack Networking"
+      region: "{{ KEYSTONE_REGION }}"
+      publicurl: "http://{{ HA_PROXY_PUBLIC_IP }}:9696"
+      adminurl: "http://{{ HA_PROXY_PUBLIC_IP }}:9696"
+      internalurl: "http://{{ HA_PROXY_PUBLIC_IP }}:9696"
+    heat:
+      name: heat
+      type: orchestration
+      description: "Orchestration"
+      region: "{{ KEYSTONE_REGION }}"
+      publicurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8004/v1/%\\(tenant_id\\)s"
+      adminurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8004/v1/%\\(tenant_id\\)s"
+      internalurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8004/v1/%\\(tenant_id\\)s"
+    heat-cfn:
+      name: heat-cfn
+      type: cloudformation
+      description: "Orchestration Cloud Formation"
+      region: "{{ KEYSTONE_REGION }}"
+      publicurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8001/v1"
+      adminurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8001/v1"
+      internalurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8001/v1"
+    ceilometer:
+      name: ceilometer
+      type: metering
+      description: "Telemetry"
+      region: "{{ KEYSTONE_REGION }}"
+      publicurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8777"
+      adminurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8777"
+      internalurl: "http://{{ HA_PROXY_PUBLIC_IP }}:8777"
+
+################
+# Glance Setup #
+################
+GLANCE_CONFIG:
+  glance_mnt: /dev/sdb
+  glance_api_conf:
+    template: "glance-api.conf.j2"
+    dest: "/etc/glance/glance-api.conf"
+    properties:
+      verbose: True
+      debug: True
+      workers: 8
+      connection: "mysql+pymysql://glance:{{ GLANCE_DBPASS }}@{{ HA_PROXY_PUBLIC_IP }}/glance"
+      auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+      auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
+      admin_user: "glance"
+      admin_password: "{{ GLANCE_PASS }}"
+  glance_registry_conf:
+    template: "glance-registry.conf.j2"
+    dest: "/etc/glance/glance-registry.conf"
+    # NOTE: at this time, all variables are pulled from glance_api_conf
+  glance_cache_conf:
+    template: "glance-cache.conf.j2"
+    dest: "/etc/glance/glance-cache.conf"
+    # NOTE: at this time, all variables are pulled from glance_api_conf
+  glance_manage_conf:
+    template: "glance-manage.conf.j2"
+    dest: "/etc/glance/glance-manage.conf"
+    # NOTE: at this time, all variables are pulled from glance_api_conf
+  glance_scrubber_conf:
+    template: "glance-scrubber.conf.j2"
+    dest: "/etc/glance/glance-scrubber.conf"
+    # NOTE: at this time, all variables are pulled from glance_api_conf
+
+##############
+# Nova Setup #
+##############
+NOVA_CONFIG:
+  nova_url: "http://{{ HA_PROXY_PUBLIC_IP }}:8774/v2"
+  nova_conf:
+    template: "nova.conf.j2"
+    dest: "/etc/nova/nova.conf"
+    properties:
+      verbose: True
+      debug: True
+      connection: "mysql+pymysql://nova:{{ NOVA_DBPASS }}@{{ HA_PROXY_PUBLIC_IP }}/nova"
+      auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+      auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
+      admin_user: "nova"
+      admin_password: "{{ NOVA_PASS }}"
+      neutron_url: "http://{{ HA_PROXY_PUBLIC_IP }}:9696"
+      neutron_admin_auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:5000/v2.0"
+      neutron_admin_username: "neutron"
+      neutron_admin_password: "{{ NEUTRON_PASS }}"
+
+######################
+# Compute Node Setup #
+######################
+NOVA_COMPUTE_CONFIG:
+  nova_conf:
+    template: "nova.conf.j2"
+    dest: "/etc/nova/nova.conf"
+    # NOTE: at this time, all variables are pulled from NOVA_CONFIG.nova_conf
+    properties:
+      verbose: True
+      debug: True
+      auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+      auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
+      neutron_url: "http://{{ HA_PROXY_PUBLIC_IP }}:9696"
+      neutron_auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
+      # neutron username and password pulled from NEUTRON_CONFIG
+  nova_compute_conf:
+    template: "nova-compute.conf.j2"
+    dest: "/etc/nova/nova-compute.conf"
+  # neutron_conf:
+  #   template: "neutron.conf.j2"
+  #   dest: "/etc/neutron/neutron.conf"
+  #   properties:
+  #     verbose: True
+  #   # NOTE: at this time, all variables are pulled from NOVA_COMPUTE_CONFIG.nova_conf
+  # linuxbridge_agent_ini:
+  #   template: "linuxbridge_agent.ini.j2"
+  #   dest: "/etc/neutron/plugins/ml2/linuxbridge_agent.ini"
+  #   linux_bridge: public:eth3
+##################
+# Neutron Setup #
+##################
+NEUTRON_CONFIG:
+  interfaces:
+    br_ex: 
+      bridge: br-ex
+      port: eth1
+    br_tun:
+      bridge: br-tun
+      port: eth3.40
+    br_vlan:
+      bridge: br-vlan
+      port: eth3.41
+  controller:
+    packages:
+      - neutron-server
+      - neutron-plugin-ml2
+      - python-neutronclient
+    neutron_conf:
+      template: "neutron.conf.controller.j2"
+      dest: "/etc/neutron/neutron.conf"
+      properties:
+        verbose: True
+        debug: True
+        connection: "mysql+pymysql://neutron:{{ NEUTRON_DBPASS }}@{{ HA_PROXY_PUBLIC_IP }}/neutron"
+        auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
+        auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+        admin_user: "neutron"
+        admin_password: "{{ NEUTRON_PASS }}"
+        # nova auth
+        nova_auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+    ml2_conf_ini:
+      template: "ml2_conf.ini.controller.j2"
+      dest: "/etc/neutron/plugins/ml2/ml2_conf.ini"
+      properties:
+        tunnel_id_ranges: "10000:30000"
+        vni_ranges: "1024:64000"
+        vxlan_group: "239.1.1.1"
+  neutron_network_node:
+    packages:
+      - openvswitch-datapath-dkms
+      - neutron-plugin-openvswitch
+      - neutron-plugin-ml2
+      - neutron-plugin-openvswitch-agent
+      - neutron-l3-agent
+      - neutron-dhcp-agent
+      - neutron-metadata-agent
+      - python-neutronclient
+      - vlan
+    neutron_conf:
+      template: "neutron.conf.network.j2"
+      dest: "/etc/neutron/neutron.conf"
+      properties:
+        verbose: True
+        debug: True
+        connection: "mysql+pymysql://neutron:{{ NEUTRON_DBPASS }}@{{ HA_PROXY_PUBLIC_IP }}/neutron"
+        auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
+        auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+        admin_user: "neutron"
+        admin_password: "{{ NEUTRON_PASS }}"
+        # nova auth
+        nova_auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+    ml2_conf_ini:
+      template: "ml2_conf.ini.network.j2"
+      dest: "/etc/neutron/plugins/ml2/ml2_conf.ini"
+      properties:
+        # Change this IP!!
+        # This should be set to the host's ip for the br-vlan interface on all neutron/compute nodes
+        tunnel_local_ip: "192.168.75.{{ ansible_ssh_host.split('.')[3] }}" # 192.168.75.196
+        bridge_mappings: vlan:br-vlan,external:br-ex
+    l3_agent_ini:
+      template: "l3_agent.ini.network.j2"
+      dest: "/etc/neutron/l3_agent.ini"
+      verbose: True
+    dhcp_agent_ini:
+      template: "dhcp_agent.ini.network.j2"
+      dest: "/etc/neutron/dhcp_agent.ini"
+      properties:
+        verbose: True
+        dhcp_domain: "iplantcollaborative.org"
+    metadata_agent_ini:
+      template: "metadata_agent.ini.network.j2"
+      dest: "/etc/neutron/metadata_agent.ini"
+      properties:
+        auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+        auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
+        verbose: True
+        admin_user: "neutron"
+        admin_password: "{{ NEUTRON_PASS }}"
+  compute:
+    packages:
+      - openvswitch-datapath-dkms
+      - neutron-plugin-openvswitch
+      - neutron-plugin-ml2
+      - neutron-plugin-openvswitch-agent
+      - neutron-l3-agent
+      - neutron-metadata-agent
+      - python-neutronclient
+      - vlan
+    services:
+      - openvswitch-switch
+      - neutron-plugin-openvswitch-agent
+      - neutron-l3-agent
+      - neutron-metadata-agent
+    sysctl_modules:
+      - { name: net.ipv4.ip_forward, option: 1 }
+      - { name: net.ipv4.conf.all.rp_filter, option: 0 }
+      - { name: net.ipv4.conf.default.rp_filter, option: 0 }
+      - { name: net.bridge.bridge-nf-call-iptables, option: 1 }
+      - { name: net.bridge.bridge-nf-call-ip6tables, option: 1 }
+    neutron_conf:
+      template: "neutron.conf.compute.j2"
+      dest: "/etc/neutron/neutron.conf"
+      properties:
+        verbose: True
+        debug: True
+        connection: "mysql+pymysql://neutron:{{ NEUTRON_DBPASS }}@{{ HA_PROXY_PUBLIC_IP }}/neutron"
+        auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
+        auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+        admin_user: "neutron"
+        admin_password: "{{ NEUTRON_PASS }}"
+        # nova auth
+        nova_auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+    ml2_conf_ini:
+      template: "ml2_conf.ini.compute.j2"
+      dest: "/etc/neutron/plugins/ml2/ml2_conf.ini"
+      properties:
+        # Might have to set ansible_ssh_host
+        # This should be the ip of the host's br-vlan interface for VXLAN packet encapsulation where VLANs are sent virutally between compute and neutron node
+        tunnel_local_ip: "192.168.75.{{ ansible_ssh_host.split('.')[3] }}"
+        bridge_mappings: vlan:br-vlan,external:br-ex
+    l3_agent_ini:
+      template: "l3_agent.ini.compute.j2"
+      dest: "/etc/neutron/l3_agent.ini"
+      properties:
+        verbose: True
+    metadata_agent_ini:
+      template: "metadata_agent.ini.compute.j2"
+      dest: "/etc/neutron/metadata_agent.ini"
+      properties:
+        auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+        auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
+        verbose: True
+        admin_user: "neutron"
+        admin_password: "{{ NEUTRON_PASS }}"
+  # Standard Neutron setup without DVR
+  neutron_conf:
+    template: "neutron.conf.j2"
+    dest: "/etc/neutron/neutron.conf"
+    properties:
+      verbose: True
+      debug: True
+      connection: "mysql+pymysql://neutron:{{ NEUTRON_DBPASS }}@{{ HA_PROXY_PUBLIC_IP }}/neutron"
+      auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
+      auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+      admin_user: "neutron"
+      admin_password: "{{ NEUTRON_PASS }}"
+      # nova auth
+      nova_auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+  ml2_conf_ini:
+    template: "ml2_conf.ini.j2"
+    dest: "/etc/neutron/plugins/ml2/ml2_conf.ini"
+    properties:
+      vni_ranges: "1024:64000"
+      tunnel_id_ranges: "10000:30000"
+      vxlan_group: "192.168.66.1"
+  linuxbridge_agent_ini:
+    template: "linuxbridge_agent.ini.j2"
+    dest: "/etc/neutron/plugins/ml2/linuxbridge_agent.ini"
+    linux_bridge: public:eth3
+  l3_agent_ini:
+    template: "l3_agent.ini.j2"
+    dest: "/etc/neutron/l3_agent.ini"
+    verbose: True
+  dhcp_agent_ini:
+    template: "dhcp_agent.ini.j2"
+    dest: "/etc/neutron/dhcp_agent.ini"
+    verbose: True
+    properties:
+      dhcp_domain: "iplantcollaborative.org"
+  dnsmasq_neutron_conf:
+    template: "dnsmasq-neutron.conf.j2"
+    dest: "/etc/neutron/dnsmasq-neutron.conf"
+  metadata_agent_ini:
+    template: "metadata_agent.ini.j2"
+    dest: "/etc/neutron/metadata_agent.ini"
+    properties:
+      auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+      auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
+      verbose: True
+      admin_user: "neutron"
+      admin_password: "{{ NEUTRON_PASS }}"
+
+################
+# Cinder Setup #
+################
+CINDER_CONFIG:
+  cinder_conf:
+    template: "cinder.conf.j2"
+    dest: "/etc/cinder/cinder.conf"
+    # NOTE: at this time, all variables are pulled from NOVA_CONFIG.nova_conf
+    properties:
+      verbose: True
+      debug: True
+      connection: "mysql+pymysql://cinder:{{ CINDER_DBPASS }}@{{ HA_PROXY_PUBLIC_IP }}/cinder"
+      admin_user: "cinder"
+      admin_password: "{{ CINDER_PASS }}"
+      # NOTE: at this time, all variables are pulled from NOVA_CONFIG.nova_conf
+      auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+      auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
+
+########################
+# Cinder Storage Setup #
+########################
+CINDER_STORAGE_CONFIG:
+  lvm:
+    physical_volume: /dev/sdc
+    metadatasize: 2048
+    volume_group_name: cinder-volumes
+  cinder_conf:
+    template: "cinder.conf.j2"
+    dest: "/etc/cinder/cinder.conf"
+    # NOTE: at this time, all variables are pulled from NOVA_CONFIG.nova_conf
+    properties:
+      verbose: True
+      debug: True
+      connection: "mysql+pymysql://cinder:{{ CINDER_DBPASS }}@{{ HA_PROXY_PUBLIC_IP }}/cinder"
+      admin_user: "cinder"
+      admin_password: "{{ CINDER_PASS }}"
+      # NOTE: at this time, all variables are pulled from NOVA_CONFIG.nova_conf
+      auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+      auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"

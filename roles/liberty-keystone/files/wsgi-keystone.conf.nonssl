@@ -1,0 +1,55 @@
+#<Location "/keystone">
+# NSSRequireSSL
+# Authtype none
+#</Location>
+
+# The processes and threads should be changed to what the server will support
+WSGIDaemonProcess keystone user=keystone group=nogroup processes=5 threads=15
+
+Listen *:5000
+<VirtualHost *:5000>
+	LogLevel warn
+	ErrorLog ${APACHE_LOG_DIR}/keystone_error.log
+	CustomLog ${APACHE_LOG_DIR}/keystone_access.log combined
+
+	#SSLEngine on
+	#SSLCertificateFile /etc/ssl/certs/mycert.pem
+	#SSLCertificateKeyFile /etc/ssl/private/mycert.key
+
+	#SSLVerifyClient optional
+	#SSLVerifyDepth 10
+	#SSLProtocol all -SSLv2
+	#SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
+	#SSLOptions +StdEnvVars +ExportCertData
+
+	WSGIScriptAlias / /usr/lib/cgi-bin/keystone/main
+	WSGIProcessGroup keystone
+
+	<Directory "/usr/lib/cgi-bin/keystone/">
+		Require all granted
+	</Directory>
+</VirtualHost>
+
+Listen *:35357
+<VirtualHost *:35357>
+	LogLevel warn
+	ErrorLog ${APACHE_LOG_DIR}/keystone_error.log
+	CustomLog ${APACHE_LOG_DIR}/keystone_access.log combined
+
+	#SSLEngine on
+	#SSLCertificateFile /etc/ssl/certs/mycert.pem
+	#SSLCertificateKeyFile /etc/ssl/private/mycert.key
+
+	#SSLVerifyClient optional
+	#SSLVerifyDepth 10
+	#SSLProtocol all -SSLv2
+	#SSLCipherSuite ALL:!ADH:!EXPORT:!SSLv2:RC4+RSA:+HIGH:+MEDIUM:+LOW
+	#SSLOptions +StdEnvVars +ExportCertData
+
+	WSGIScriptAlias / /usr/lib/cgi-bin/keystone/admin
+	WSGIProcessGroup keystone
+
+	<Directory "/usr/lib/cgi-bin/keystone/">
+        	Require all granted
+	</Directory>
+</VirtualHost>

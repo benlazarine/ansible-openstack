@@ -1,0 +1,7 @@
+---
+CLOUD_USER: centos
+
+PGKS_TO_REMOVE:
+ - cloud-init
+ - cloud-utils-growpart
+ - cloud-utils

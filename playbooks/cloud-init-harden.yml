@@ -1,0 +1,62 @@
+---
+- name: Perform sanitize of new cloud images as the cloud_user
+  hosts: maas
+  #remote_user: "{{ ansible_distribution | lower }}"
+  gather_facts: yes
+  roles:
+    - atmo-image-cleanup-part-1
+  tags:
+    - part-1
+
+- name: Perform sanitize of new cloud images as the cloud_user part 2
+  hosts: maas
+  remote_user: root
+  tasks:
+    - name: remove maas apt-repo
+      file: path=/etc/apt/apt.conf.d/90curtin-aptproxy state=absent
+      tags:
+        - maas
+  roles:
+      - atmo-image-cleanup-part-2
+  tags:
+    - part-2
+
+- name: Install and configure OpenStack dependencies
+  hosts: maas
+  remote_user: root
+  tasks:
+    - name: install openstack dependencies
+      apt: name={{ item }} state=latest
+      with_items:
+        - ubuntu-cloud-keyring
+        - software-properties-common
+        - aptitude
+        - build-essential
+        - git
+        - ntp
+        - ntpdate
+        - openssh-server
+        - python-dev
+        - sudo
+      tags:
+        - install
+    - name: add repo
+      apt_repository: repo='deb http://ubuntu-cloud.archive.canonical.com/{{ ansible_distribution | lower }} {{ ansible_distribution_release }}-updates/liberty main' state=present
+      tags:
+        - install
+  tags:
+    - openstack
+
+- name: Install and configure NTP
+  hosts: maas
+  remote_user: root
+  roles:
+    - cso-ntp
+  tasks:
+    #######################
+    # REBOOT HOSTS NOW!!! #
+    #######################
+    - name: reboot hosts
+      debug: msg="Please reboot all hosts!!"
+  tags:
+    - ntp

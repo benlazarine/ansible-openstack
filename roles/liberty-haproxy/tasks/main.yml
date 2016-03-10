@@ -1,0 +1,27 @@
+---
+- name: cache update
+  apt: cache_valid_time=43200 update_cache=yes 
+
+- name: install haproxy
+  apt: name={{ item }} state=present
+  with_items:
+    - haproxy
+
+- name: configure rsyslog
+  lineinfile: dest=/etc/rsyslog.conf state=present regexp="^\$ModLoad imudp" line="$ModLoad imudp" backup=yes
+  notify: restart rsyslog
+
+- lineinfile: dest=/etc/rsyslog.conf state=present regexp="^\$UDPServerAddress 127.0.0.1" line="$UDPServerAddress 127.0.0.1"
+  notify: restart rsyslog
+
+- lineinfile: dest=/etc/rsyslog.conf state=present regexp="^\$UDPServerRun 514" line="$UDPServerRun 514"
+  notify: restart rsyslog
+
+- name: template openstack haproxy.cfg
+  template: src=haproxy.cfg.j2 dest=/etc/haproxy/haproxy.cfg backup=yes
+  notify: restart haproxy
+
+- name: enable haproxy
+  lineinfile: dest=/etc/default/haproxy state=present regexp="^ENABLED=0" line="ENABLED=1" backrefs=yes
+  notify: restart haproxy
+

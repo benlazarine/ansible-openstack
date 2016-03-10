@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+
+auto {{ item.value.device }}
+iface {{ item.value.device }} {{ EXTERNAL_NETWORK.family }} {{ EXTERNAL_NETWORK.method }}
+  address {{ item.value.address }}
+{% for key in ['description', 'bond-mode', 'bond-miimon', 'bond-slaves', 'bond-lacp-rate', 'broadcast', 'gateway', 'netmask', 'network', 'vlan-raw-device', 'bond-master'] %}
+{%   if key in EXTERNAL_NETWORK %}
+  {{ key }} {{ EXTERNAL_NETWORK[key] }}
+{%   endif %}
+{% endfor %}
+
+{%- if EXTERNAL_NETWORK.nameservers is defined %}
+
+  dns-nameservers {{ EXTERNAL_NETWORK.nameservers | join(' ') }}
+{% endif %}
+{%- if EXTERNAL_NETWORK.dns_search is defined %}
+  dns-search {{ EXTERNAL_NETWORK.dns_search }}
+{% endif %}

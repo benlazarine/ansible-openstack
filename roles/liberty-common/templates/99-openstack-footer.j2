@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo
+echo -e "openstack liberty setup:"
+echo -e "\tkeystone: {{ CONTROLLER_NODES[0] }}"
+echo -e "\tnova-api: {{ CONTROLLER_NODES[1] }}"
+echo -e "\tglance: {{ GLANCE_NODE }}"
+echo -e "\thaproxy: {{ HAPROXY_NODE }}"
+echo -e "\tmysql: {{ CONTROLLER_NODES | join(' ') }}"
+echo -e "\trabbitmq: {{ CONTROLLER_NODES | join(' ') }}"
+echo -e "\tneutron: {{ NEUTRON_NODE[0] }}"
+echo -e "\tcompute: {{ COMPUTE_NODES | join(' ') }}"
+echo
+
+exit 0

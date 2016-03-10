@@ -1,0 +1,216 @@
+---
+
+- name: template keystone-paste.ini to use token auth for all service, endpoint, project, role and user creation
+  template: src=keystone-paste.ini.unsecure.j2 dest=/etc/keystone/keystone-paste.ini mode=0644 backup=yes
+  tags:
+    - setup
+
+###################
+# Create Services #
+###################
+- name: determine which services should be created
+  shell: "/usr/bin/openstack service show {{ item.value.name }} | /bin/grep 'id' | /bin/grep -v 'identity' | /usr/bin/awk '{print $4}'"
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  with_dict: KEYSTONE.services
+  register: keystone_service_check
+  tags:
+    - service
+
+- name: create service if it doesn't exist
+  shell: "/usr/bin/openstack service create --name {{ item.item.key }} --description '{{ item.item.value.description }}' {{ item.item.value.type }}"
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  when: item.stdout == ""
+  with_items: "{{ keystone_service_check.results }}"
+  tags:
+    - service
+
+####################
+# Create Endpoints #
+####################
+- name: determine if public service endpoints should be created
+  shell: /usr/bin/openstack endpoint list | /bin/grep -w '.* {{ item.key }} .*' | /bin/grep 'public' | /usr/bin/awk '{print $2}'
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  with_dict: KEYSTONE.services
+  register: keystone_public_endpoint_check
+  
+  tags:
+    - endpoint
+    - public
+
+- name: determine if internal service endpoints should be created
+  shell: /usr/bin/openstack endpoint list | /bin/grep -w '.* {{ item.key }} .*' | /bin/grep 'internal' | /usr/bin/awk '{print $2}'
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  with_dict: KEYSTONE.services
+  register: keystone_internal_endpoint_check
+  
+  tags:
+    - endpoint
+    - internal
+
+- name: determine if admin service endpoints should be created
+  shell: /usr/bin/openstack endpoint list | /bin/grep -w '.* {{ item.key }} .*' | /bin/grep 'admin' | /usr/bin/awk '{print $2}'
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  with_dict: KEYSTONE.services
+  register: keystone_admin_endpoint_check
+  
+  tags:
+    - endpoint
+    - admin
+
+- name: create public service endpoint if it doesn't exist
+  shell: "/usr/bin/openstack endpoint create --region {{ KEYSTONE_REGION }} {{ item.item.value.type }} public {{ item.item.value.publicurl }}"
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  when: item.stdout == ""
+  with_items: "{{ keystone_public_endpoint_check.results }}"
+  tags:
+    - endpoint
+    - public
+
+- name: create internal service endpoint if it doesn't exist
+  shell: "/usr/bin/openstack endpoint create --region {{ KEYSTONE_REGION }} {{ item.item.value.type }} internal {{ item.item.value.internalurl }}"
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  when: item.stdout == ""
+  with_items: "{{ keystone_internal_endpoint_check.results }}"
+  tags:
+    - endpoint
+    - internal
+
+- name: create public admin endpoint if it doesn't exist
+  shell: "/usr/bin/openstack endpoint create --region {{ KEYSTONE_REGION }} {{ item.item.value.type }} admin {{ item.item.value.adminurl }}"
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  when: item.stdout == ""
+  with_items: "{{ keystone_admin_endpoint_check.results }}"
+  tags:
+    - endpoint
+    - admin
+
+# - debug: msg="out={{ item.stdout }}"
+#   with_items: "{{ keystone_endpoint_check.results }}"
+#   tags:
+#     - endpoint
+
+###################
+# Create Projects #
+###################
+- name: determine which projects should be created
+  shell: "/usr/bin/openstack project show {{ item.value.project }} | /bin/grep 'id' | /bin/grep -v 'domain_id' | /bin/grep -v 'parent_id' | /usr/bin/awk '{print $4}'"
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  with_dict: KEYSTONE.projects
+  register: keystone_project_check
+  tags:
+    - project
+
+# - debug: msg="{{ item.item.value.project }} {{ item.item.value.description }}"
+#   with_items: "{{ keystone_project_check.results }}"
+#   tags:
+#     - project
+#     - magic
+
+- name: create project if it doesn't exist
+  shell: "/usr/bin/openstack project create --domain {{ KEYSTONE.domain }} --description '{{ item.item.value.description }}' {{ item.item.value.project }}"
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  when: item.stdout == ""
+  with_items: "{{ keystone_project_check.results }}"
+  tags:
+    - project
+
+################
+# Create Users #
+################
+- name: determine which users should be created
+  shell: "/usr/bin/openstack user show {{ item.key }} | /bin/grep 'id' | /bin/grep -v default | /usr/bin/awk '{print $4}'"
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  with_dict: KEYSTONE.users
+  register: keystone_setup_user_check
+  tags:
+    - user
+
+- name: create user if it doesn't exist
+  shell: "/usr/bin/openstack user create --domain {{ KEYSTONE.domain }} --password '{{ item.item.value.password }}' --project {{ item.item.value.project }} --description '{{ item.item.value.description }}' {{ item.item.key }}"
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  when: item.stdout == ""
+  with_items: "{{ keystone_setup_user_check.results }}"
+  tags:
+    - user
+
+################
+# Create Roles #
+################
+# - debug: msg="out={{ item.key }}"
+#   with_dict: KEYSTONE.roles
+#   tags:
+#     - magic
+
+- name: determine which roles should be created
+  shell: "/usr/bin/openstack role show {{ item.key }} | /bin/grep 'id' | /usr/bin/awk '{print $4}'"
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  with_dict: KEYSTONE.roles
+  register: keystone_setup_role_check
+  tags:
+    - role
+
+- name: create role if it doesn't exist
+  shell: "/usr/bin/openstack role create {{ item.item.key }}"
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  when: item.stdout == ""
+  with_items: "{{ keystone_setup_role_check.results }}"
+  tags:
+    - role
+
+####################################
+# Add role and project to the user #
+####################################
+# - debug: msg="out={{ item }}"
+#   with_dict: KEYSTONE.users
+#   tags:
+#     - magic
+
+- name: add the role to the project and user
+  shell: "/usr/bin/openstack role add --project {{ item.value.project }} --user {{ item.key }} {{ item.value.role }}"
+  run_once: true
+  environment: "{{ KEYSTONE.env }}"
+  with_dict: KEYSTONE.users
+  tags:
+    - role
+    - add-role
+
+###############################
+# Unset Environment Variables #
+###############################
+- name: template keystone-paste.ini to remove token auth
+  template: src=keystone-paste.ini.secure.j2 dest=/etc/keystone/keystone-paste.ini mode=0644 backup=yes
+  tags:
+    - setup
+
+- name: unset environment variables
+  shell: unset {{ item }}
+  run_once: true
+  with_items:
+    - OS_TOKEN
+    - OS_URL
+  tags:
+    - environment
+    - cleanup
+
+- name: template client environment scripts for auth
+  template: src={{ item.src }} dest=/root/{{ item.dest }} mode=0755
+  with_items:
+    - { src: admin-openrc.sh.j2, dest: admin-openrc.sh }
+    - { src: atmo-admin-openrc.sh.j2, dest: atmo-admin-openrc.sh }
+  tags:
+    - setup
+    - auth-scripts

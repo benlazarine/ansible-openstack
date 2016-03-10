@@ -1,0 +1,8 @@
+{% for k,v in HOSTS | dictsort(false, 'value') %}
+{%   if k != inventory_hostname %}
+Host {{ k }}
+	User root
+	Port 1657
+	Hostname {{ v.mgmt.address }}
+{%   endif %}
+{% endfor %}

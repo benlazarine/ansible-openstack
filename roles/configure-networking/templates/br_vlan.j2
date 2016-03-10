@@ -1,0 +1,18 @@
+# {{ ansible_managed }}
+
+auto {{ item.value.device }}
+iface {{ item.value.device }} {{ BR_VLAN_NETWORK.family }} {{ BR_VLAN_NETWORK.method }}
+  address {{ item.value.address }}
+{% for key in ['description', 'bond-mode', 'bond-miimon', 'bond-slaves', 'bond-lacp-rate', 'broadcast', 'gateway', 'netmask', 'network', 'vlan-raw-device', 'bond-master'] %}
+{%   if key in BR_VLAN_NETWORK %}
+  {{ key }} {{ BR_VLAN_NETWORK[key] }}
+{%   endif %}
+{% endfor %}
+
+{%- if BR_VLAN_NETWORK.nameservers is defined %}
+
+  dns-nameservers {{ BR_VLAN_NETWORK.nameservers | join(' ') }}
+{% endif %}
+{%- if BR_VLAN_NETWORK.dns_search is defined %}
+  dns-search {{ BR_VLAN_NETWORK.dns_search }}
+{% endif %}

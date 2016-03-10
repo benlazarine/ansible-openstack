@@ -1,0 +1,156 @@
+---
+##################################
+# Minimal Linux Hardening Part 1 #
+##################################
+SSH_KEYS_ADD:
+  - "ssh-rsa AAAA..."
+SSH_KEYS_REMOVE:
+  - "ssh-rsa AAAA..."
+NTP_SERVERS:
+  - 0.pool.ntp.org
+  - 1.pool.ntp.org
+  - 2.pool.ntp.org
+  - 3.pool.ntp.org
+SUDO_USERS:
+  - "admin1"
+
+#########################
+# Network configuration #
+#########################
+MGMT_NETWORK:
+  description: management interface
+  auto: true
+  family: inet
+  method: static
+  network: 10.0.2.0
+  netmask: 255.255.255.0
+  broadcast: 10.0.2.255
+  gateway: 10.0.2.1
+  dns_search: mydomain.org
+  nameservers: [ '8.8.8.8', '8.8.4.4' ]
+
+EXTERNAL_NETWORK:
+  description: external nat interface
+  auto: true
+  family: inet
+  method: static
+  network: 203.0.113.0
+  netmask: 255.255.255.0
+  broadcast: 203.0.113.255
+  gateway: 203.0.113.1
+
+BR_TUN_NETWORK:
+  description: project tunnel interface
+  auto: true
+  family: inet
+  method: static
+  network: 192.168.65.0
+  netmask: 255.255.255.0
+  broadcast: 192.168.65.255
+
+BR_VLAN_NETWORK:
+  description: project tunnel vlan interface
+  auto: true
+  family: inet
+  method: static
+  network: 192.168.75.0
+  netmask: 255.255.255.0
+  broadcast: 192.168.75.255
+
+HOSTS:
+  ha:
+    mgmt:
+      device: eth3
+      address: 10.0.2.1
+  controller1:
+    mgmt:
+      device: eth3
+      address: 10.0.2.2
+  controller2:
+    mgmt:
+      device: eth3
+      address: 10.0.2.3
+  controller3:
+    mgmt:
+      device: eth3
+      address: 10.0.2.4
+  network_node:
+    mgmt:
+      device: eth3
+      address: 10.0.2.5
+    ext:
+      device: eth1
+      method: manual
+    tun:
+      device: eth3.40
+      method: manual
+      interface: eth3
+    vlan:
+      device: eth3.41
+      method: manual
+      interface: eth3
+    brext:
+      device: br-ex
+      address: 203.0.113.2
+    brtun:
+      device: br-tun
+      address: 192.168.65.2
+    brvlan:
+      device: br-vlan
+      address: 192.168.75.2
+  glance_node:
+    mgmt:
+      device: eth3
+      address: 10.0.2.6
+  cinder_node:
+    mgmt:
+      device: eth0
+      address: 10.0.2.7
+  compute1:
+    mgmt:
+      device: eth3
+      address: 10.0.2.8
+    ext:
+      device: eth1
+      method: manual
+    tun:
+      device: eth3.40
+      method: manual
+      interface: eth3
+    vlan:
+      device: eth3.41
+      method: manual
+      interface: eth3
+    brext:
+      device: br-ex
+      address: 203.0.113.3
+    brtun:
+      device: br-tun
+      address: 192.168.65.3
+    brvlan:
+      device: br-vlan
+      address: 192.168.75.3
+  compute2:
+    mgmt:
+      device: eth3
+      address: 10.0.2.9
+    ext:
+      device: eth1
+      method: manual
+    tun:
+      device: eth3.40
+      method: manual
+      interface: eth3
+    vlan:
+      device: eth3.41
+      method: manual
+      interface: eth3
+    brext:
+      device: br-ex
+      address: 203.0.113.4
+    brtun:
+      device: br-tun
+      address: 192.168.65.4
+    brvlan:
+      device: br-vlan
+      address: 192.168.75.4

@@ -1,0 +1,27 @@
+---
+
+- name: add gnupg key for codership repo
+  shell: apt-key adv --keyserver keyserver.ubuntu.com --recv BC19DDBA
+  tags:
+    - install
+
+- name: add codership repo
+  apt_repository: repo='deb http://releases.galeracluster.com/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} main' state=present
+  tags:
+    - install
+
+- name: update cache again after repo update
+  apt: update_cache=yes
+  tags:
+    - install
+    - updates
+
+- name: disable apparmor
+  file: src=/etc/apparmor.d/usr.sbin.mysqld dest=/etc/apparmor.d/disable/usr.sbin.mysqld state=link force=yes
+  tags:
+    - apparmor
+
+- name: restart apparmor to load new profile
+  service: name=apparmor state=restarted
+  tags:
+    - apparmor

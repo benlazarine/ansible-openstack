@@ -1,0 +1,9 @@
+# {{ ansible_managed }}
+
+auto {{ item.value.device }}
+iface {{ item.value.device }} inet {{ item.value.method }}
+  vlan-raw-device {{ item.value.interface }}
+  up ip link set dev $IFACE up
+  up ip link set $IFACE promisc on
+  down ip link set $IFACE promisc off
+  down ip link set dev $IFACE down
