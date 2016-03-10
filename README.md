@@ -1,7 +1,6 @@
 # Ansible-OpenStack
 Deploy OpenStack on Bare Metal using Ansible
 
-
 ## Generating Credentials
 ### Create credentials Ansible Vault (Automatically)
 1. Create Ansible credentials Vault (clear-text)
