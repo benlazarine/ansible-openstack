@@ -1,6 +1,6 @@
 [ovs]
-local_ip = {{ NEUTRON_CONFIG.compute.ml2_conf_ini.properties.tunnel_local_ip }}
-bridge_mappings = {{ NEUTRON_CONFIG.compute.ml2_conf_ini.properties.bridge_mappings }}
+local_ip = {{ NOVA_COMPUTE_CONFIG.ml2_conf_ini.properties.tunnel_local_ip }}
+bridge_mappings = {{ NOVA_COMPUTE_CONFIG.ml2_conf_ini.properties.bridge_mappings }}
 
 [agent]
 l2_population = True
