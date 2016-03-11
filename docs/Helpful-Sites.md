@@ -1,4 +1,6 @@
 # OpenStack Liberty Docs and Helpful Sites
+## General Information
+
 * OpenStack
   * Install Guide: <http://docs.openstack.org/liberty/install-guide-ubuntu>
   * Configuration Reference Guide: <http://docs.openstack.org/liberty/config-reference/content/section_neutron.conf.html>
@@ -22,3 +24,10 @@
   * Host configuration worksheet: <https://docs.google.com/spreadsheets/d/1IDae4Sqw5P9bBSrSELsO_7L_8OYITqElTIRFWQsT9i4/edit?usp=sharing>
   * Ansible Vault Examples: <https://gist.github.com/tristanfisher/e5a306144a637dc739e7>
   * Galera user table not syncing: <http://galeracluster.com/documentation-webpages/userchanges.html>
+
+## Neutron OVS DVR
+
+* <http://egonzalez.org/configure-neutron-dvr-openstack-liberty/>
+* <http://blog.gampel.net/2014/12/openstack-neutron-distributed-virtual.html>
+* <http://blog.gampel.net/2014/12/openstack-dvr2-floating-ips.html>
+* <http://blog.gampel.net/2015/01/openstack-DVR-SNAT.html>
