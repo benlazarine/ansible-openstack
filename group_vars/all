@@ -1,6 +1,31 @@
 ---
 
 ##################
+# OS Credentials #
+##################
+OS_CREDS:
+  admin_env:
+    OS_PROJECT_DOMAIN_ID: default
+    OS_USER_DOMAIN_ID: default
+    OS_PROJECT_NAME: "{{ KEYSTONE.service_tenant }}"
+    OS_TENANT_NAME: admin
+    OS_USERNAME: admin
+    OS_PASSWORD: "{{ ADMIN_PASS }}"
+    OS_AUTH_URL: http://{{ HA_PROXY_PUBLIC_IP }}:35357/v3
+    OS_IDENTITY_API_VERSION: 3
+    OS_IMAGE_API_VERSION: 2
+  user_env:
+    OS_PROJECT_DOMAIN_ID: default
+    OS_USER_DOMAIN_ID: default
+    OS_PROJECT_NAME: atmoadmin
+    OS_TENANT_NAME: admin
+    OS_USERNAME: atmoadmin
+    OS_PASSWORD: "{{ ATMOADMIN }}"
+    OS_AUTH_URL: http://{{ HA_PROXY_PUBLIC_IP }}:35357/v3
+    OS_IDENTITY_API_VERSION: 3
+    OS_IMAGE_API_VERSION: 2
+
+##################
 # Galera Cluster #
 ##################
 CONTROLLERS:
