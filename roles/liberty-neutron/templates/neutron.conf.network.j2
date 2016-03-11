@@ -10,6 +10,8 @@ verbose = {{ NEUTRON_CONFIG.neutron_network_node.neutron_conf.properties.verbose
 # value is "False" to support legacy mode (centralized) routers.
 #
 # router_distributed = False
+router_distributed = True
+
 #
 # ===========End Global Config Option for Distributed L3 Router===============
 
@@ -107,7 +109,7 @@ core_plugin = ml2
 # avoid mixing them up with MAC's allocated for tenant ports.
 # A 4 octet example would be dvr_base_mac = fa:16:3f:4f:00:00
 # The default is 3 octet
-# dvr_base_mac = fa:16:3f:00:00:00
+dvr_base_mac = fa:16:3f:00:00:00
 
 # Maximum amount of retries to generate a unique MAC address
 # mac_generation_retries = 16

@@ -5,7 +5,7 @@
 
 # External Network
 - name: determine if external network should be created
-  shell: /usr/bin/neutron net-show ext-net
+  shell: /usr/bin/neutron net-show external_network
   run_once: true
   ignore_errors: yes
   environment: "{{ OS_CREDS.admin_env }}"
@@ -14,7 +14,7 @@
     - ext-net
 
 - name: create external network if not present
-  shell: /usr/bin/neutron net-create ext-net --router:external --provider:physical_network external --provider:network_type flat
+  shell: /usr/bin/neutron net-create external_network --provider:physical_network external --provider:network_type flat --router:external --shared
   run_once: true
   ignore_errors: yes
   environment: "{{ OS_CREDS.admin_env }}"
@@ -33,7 +33,7 @@
     - ext-net
 
 - name: create external network subnet if not present
-  shell: /usr/bin/neutron subnet-create ext-net {{ NEUTRON_NETWORKS.ext_net.network }} --allocation-pool start={{ NEUTRON_NETWORKS.ext_net.start }},end={{ NEUTRON_NETWORKS.ext_net.end }} --disable-dhcp --gateway {{ NEUTRON_NETWORKS.ext_net.gateway }}
+  shell: /usr/bin/neutron subnet-create --name {{ NEUTRON_NETWORKS.ext_net.name }} external_network {{ NEUTRON_NETWORKS.ext_net.network }} --allocation-pool start={{ NEUTRON_NETWORKS.ext_net.start }},end={{ NEUTRON_NETWORKS.ext_net.end }} --disable-dhcp --gateway {{ NEUTRON_NETWORKS.ext_net.gateway }}
   run_once: true
   ignore_errors: yes
   environment: "{{ OS_CREDS.admin_env }}"
@@ -201,7 +201,7 @@
 # neutron router-gateway-set atmoadmin-router ext-net
 
 - name: add ext-net gateway to the project router
-  shell: /usr/bin/neutron router-gateway-set {{ item.item.key }}-router ext-net
+  shell: /usr/bin/neutron router-gateway-set {{ item.item.key }}-router external_network
   run_once: true
   ignore_errors: yes
   environment: "{{ OS_CREDS.user_env }}"

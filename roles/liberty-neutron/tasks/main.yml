@@ -229,6 +229,22 @@
 # ip link set br-* up
 # ip link set eth-* up
 
+###########################
+# Bring all interfaces UP #
+###########################
+
+- name: bring up physical bridge interfaces
+  shell: ip link set up {{ item.value.port }}
+  with_dict: NEUTRON_CONFIG.interfaces
+  tags:
+    - ovs
+
+- name: bring up ovs bridge interfaces
+  shell: ip link set up {{ item.value.bridge }}
+  with_dict: NEUTRON_CONFIG.interfaces
+  tags:
+    - ovs
+
 ########################
 # Neutron Network Node #
 ########################

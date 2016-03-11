@@ -333,6 +333,9 @@ NOVA_COMPUTE_CONFIG:
       # This should be the ip of the host's br-vlan interface for VXLAN packet encapsulation where VLANs are sent virutally between compute and neutron node
       tunnel_local_ip: "192.168.75.{{ ansible_ssh_host.split('.')[3] }}"
       bridge_mappings: vlan:br-vlan,external:br-ex
+  openvswitch_agent_ini:
+    template: "openvswitch_agent.ini.j2"
+    dest: "/etc/neutron/plugins/ml2/openvswitch_agent.ini" 
   # neutron_conf:
   #   template: "neutron.conf.j2"
   #   dest: "/etc/neutron/neutron.conf"
@@ -380,7 +383,7 @@ NEUTRON_CONFIG:
       dest: "/etc/neutron/plugins/ml2/ml2_conf.ini"
       properties:
         tunnel_id_ranges: "10000:30000"
-        vni_ranges: "1024:64000"
+        vni_ranges: "10:100"
         vxlan_group: "239.1.1.1"
   neutron_network_node:
     packages:

@@ -39,6 +39,14 @@
     - template
     - config
 
+- name: template openvswitch_agent.ini.j2
+  template: src="{{ NOVA_COMPUTE_CONFIG.openvswitch_agent_ini.template }}" dest="{{ NOVA_COMPUTE_CONFIG.openvswitch_agent_ini.dest }}" backup=yes
+  tags:
+    - nova
+    - compute
+    - template
+    - config
+
 - name: run command to check if cpu supports hardware acceleration
   shell: egrep -c '(vmx|svm)' /proc/cpuinfo
   register: cpu_hw_acc
@@ -88,6 +96,22 @@
 - name: create the ports on all bridges
   openvswitch_port: bridge="{{ item.value.bridge }}" port="{{ item.value.port }}" state=present
   with_dict: "{{ NEUTRON_CONFIG.interfaces }}" 
+  tags:
+    - ovs
+
+###########################
+# Bring all interfaces UP #
+###########################
+
+- name: bring up physical bridge interfaces
+  shell: ip link set up {{ item.value.port }}
+  with_dict: NEUTRON_CONFIG.interfaces
+  tags:
+    - ovs
+
+- name: bring up ovs bridge interfaces
+  shell: ip link set up {{ item.value.bridge }}
+  with_dict: NEUTRON_CONFIG.interfaces
   tags:
     - ovs
 
