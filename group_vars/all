@@ -325,6 +325,14 @@ NOVA_COMPUTE_CONFIG:
   nova_compute_conf:
     template: "nova-compute.conf.j2"
     dest: "/etc/nova/nova-compute.conf"
+  ml2_conf_ini:
+    template: "ml2_conf.ini.j2"
+    dest: "/etc/neutron/plugins/ml2/ml2_conf.ini"
+    properties:
+      # Might have to set ansible_ssh_host
+      # This should be the ip of the host's br-vlan interface for VXLAN packet encapsulation where VLANs are sent virutally between compute and neutron node
+      tunnel_local_ip: "192.168.75.{{ ansible_ssh_host.split('.')[3] }}"
+      bridge_mappings: vlan:br-vlan,external:br-ex
   # neutron_conf:
   #   template: "neutron.conf.j2"
   #   dest: "/etc/neutron/neutron.conf"
@@ -459,14 +467,6 @@ NEUTRON_CONFIG:
         admin_password: "{{ NEUTRON_PASS }}"
         # nova auth
         nova_auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
-    ml2_conf_ini:
-      template: "ml2_conf.ini.compute.j2"
-      dest: "/etc/neutron/plugins/ml2/ml2_conf.ini"
-      properties:
-        # Might have to set ansible_ssh_host
-        # This should be the ip of the host's br-vlan interface for VXLAN packet encapsulation where VLANs are sent virutally between compute and neutron node
-        tunnel_local_ip: "192.168.75.{{ ansible_ssh_host.split('.')[3] }}"
-        bridge_mappings: vlan:br-vlan,external:br-ex
     l3_agent_ini:
       template: "l3_agent.ini.compute.j2"
       dest: "/etc/neutron/l3_agent.ini"

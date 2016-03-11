@@ -174,16 +174,6 @@
     - config
     - compute-node
 
-- name: template ml2_conf.ini to compute nodes
-  template: src="{{ NEUTRON_CONFIG.compute.ml2_conf_ini.template }}" dest="{{ NEUTRON_CONFIG.compute.ml2_conf_ini.dest }}" backup=yes
-  delegate_to: "{{ item }}"
-  with_items: "{{ COMPUTE_NODES }}"
-  tags:
-    - neutron
-    - template
-    - config
-    - compute-node
-
 - name: template l3_agent.ini to compute nodes
   template: src="{{ NEUTRON_CONFIG.compute.l3_agent_ini.template }}" dest="{{ NEUTRON_CONFIG.compute.l3_agent_ini.dest }}" backup=yes
   delegate_to: "{{ item }}"

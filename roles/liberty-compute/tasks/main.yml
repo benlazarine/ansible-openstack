@@ -31,6 +31,14 @@
     - template
     - config
 
+- name: template ml2_conf.ini.j2
+  template: src="{{ NOVA_COMPUTE_CONFIG.ml2_conf_ini.template }}" dest="{{ NOVA_COMPUTE_CONFIG.ml2_conf_ini.dest }}" backup=yes
+  tags:
+    - nova
+    - compute
+    - template
+    - config
+
 - name: run command to check if cpu supports hardware acceleration
   shell: egrep -c '(vmx|svm)' /proc/cpuinfo
   register: cpu_hw_acc
@@ -62,10 +70,9 @@
     - vm
     - virtualization
 
-- name: restart nova-compute
-  service: name=nova-compute state=restarted enabled=yes
-  tags:
-    - nova-compute
+#########################
+# Configure OVS Bridges #
+#########################
 
 - name: load openvswitch module 
   modprobe: name=openvswitch state=present
@@ -83,6 +90,11 @@
   with_dict: "{{ NEUTRON_CONFIG.interfaces }}" 
   tags:
     - ovs
+
+- name: restart nova-compute
+  service: name=nova-compute state=restarted enabled=yes
+  tags:
+    - nova-compute
 
 - name: remove /var/lib/nova/nova.sqlite
   file: path=/var/lib/nova/nova.sqlite state=absent
