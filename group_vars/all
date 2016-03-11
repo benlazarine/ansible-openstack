@@ -1,5 +1,72 @@
 ---
 
+##################
+# Galera Cluster #
+##################
+CONTROLLERS:
+  mysql_mnt: /dev/sdb
+GALERA_CONFIG:
+  master_node: "{{ MASTER_NODE }}"
+  nodes: 
+    - "{{ HA_PROXY_CONFIG.controller1 }}"
+    - "{{ HA_PROXY_CONFIG.controller2 }}"
+    - "{{ HA_PROXY_CONFIG.controller3 }}"
+  cluster_name: openstack_liberty_cluster
+  innodb_settings: {
+    wsrep_sst_auth: "wsrep_sst_auth=sst:{{ MYSQL_PASS_SST }}",
+    innodb_buffer_pool_size: 4G,
+    innodb_file_per_table: innodb_file_per_table,
+    innodb_flush_method: innodb_flush_method=O_DIRECT,
+    innodb_log_file_size: innodb_log_file_size=1G,
+    innodb_open_files: innodb_open_files=1024,
+    innodb_lock_wait_timeout: innodb_lock_wait_timeout=100,
+    max_connections: max_connections=300,
+    collation_server: "collation-server=utf8_general_ci",
+    init_connect: "init-connect='SET NAMES utf8'",
+    character_set_server: "character-set-server=utf8"
+  }
+
+MYSQL_ALLOWED_HOSTS:
+  - "{{ HA_PROXY_PUBLIC_IP }}"
+  - "{{ ansible_ssh_host }}"
+  - 127.0.0.1
+  - ::1
+  - localhost
+  - '%'
+
+MYSQL:
+  root_password: "{{ MYSQL_PASS_ROOT }}"
+  nodes: "groups['{{ CONTROLLER_NODES }}']"
+  database:
+    - name: keystone
+      password: "{{ KEYSTONE_DBPASS }}"
+      allowed_hosts: "{{ MYSQL_ALLOWED_HOSTS }}"
+    - name: glance
+      password: "{{ GLANCE_DBPASS }}"
+      allowed_hosts: "{{ MYSQL_ALLOWED_HOSTS }}"
+    - name: neutron
+      password: "{{ NEUTRON_DBPASS }}"
+      allowed_hosts: "{{ MYSQL_ALLOWED_HOSTS }}"
+    - name: cinder
+      password: "{{ CINDER_DBPASS }}"
+      allowed_hosts: "{{ MYSQL_ALLOWED_HOSTS }}"
+    - name: nova
+      password: "{{ NOVA_DBPASS }}"
+      allowed_hosts: "{{ MYSQL_ALLOWED_HOSTS }}"
+
+####################
+# RabbitMQ Cluster #
+####################
+RABBITMQ_CONFIG:
+  master_node_hostname: "{{ HA_PROXY_CONFIG.master_controller_node_hostname }}"
+  master_node: "{{ MASTER_NODE }}"
+  rabbit_userid: openstack
+  rabbit_password: "{{ RABBIT_PASS }}"
+  HA: True
+  node_type_ram: True
+  notification_driver: "notification_driver = noop"
+  rabbit_hosts: "{{ HA_PROXY_CONFIG.controllers | join(':5672,') }}:5672"
+
 COMMON:
   sysctl_modules:
     - { name: net.ipv6.conf.all.disable_ipv6, option: 1 }
