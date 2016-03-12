@@ -532,6 +532,14 @@ NEUTRON_CONFIG:
       admin_user: "neutron"
       admin_password: "{{ NEUTRON_PASS }}"
 
+#################
+# Horizon Setup #
+#################
+HORIZON_CONFIG:
+  local_settings_py:
+    template: "local_settings.py.j2"
+    dest: "/etc/openstack-dashboard/local_settings.py"  
+    time_zone: "America/Phoenix"
 ################
 # Cinder Setup #
 ################

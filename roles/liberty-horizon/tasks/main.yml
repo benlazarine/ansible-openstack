@@ -1,0 +1,22 @@
+---
+
+- name: install openstack horizon
+  apt: name={{ item }} state=latest
+  with_items:
+    - openstack-dashboard
+  tags:
+    - install
+
+- name: template local_settings.py
+  template: src="{{ HORIZON_CONFIG.local_settings_py.template }}" dest="{{ HORIZON_CONFIG.local_settings_py.dest }}" backup=yes
+  tags:
+    - template
+    - config
+
+- name: restart apache2 to load horizon
+  service: name={{ item }} state=restarted enabled=yes
+  with_items:
+    - apache2
+    - memcached
+  tags:
+    - horizon
