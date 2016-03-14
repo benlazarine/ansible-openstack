@@ -130,3 +130,14 @@ listen neutron_api_cluster
         server controller1 {{ HA_PROXY_CONFIG.controller1 }}:9696 check inter 2000 rise 2 fall 5
         server controller2 {{ HA_PROXY_CONFIG.controller2 }}:9696 check inter 2000 rise 2 fall 5
         server controller3 {{ HA_PROXY_CONFIG.controller3 }}:9696 check inter 2000 rise 2 fall 5
+
+listen cinder_api_cluster
+        bind {{ HA_PROXY_PUBLIC_IP }}:8776
+        balance  source
+        option  tcpka
+        option  httpchk
+        option  tcplog
+        timeout server 15m
+        server controller1 {{ HA_PROXY_CONFIG.controller1 }}:8776 check inter 2000 rise 2 fall 5
+        server controller2 {{ HA_PROXY_CONFIG.controller2 }}:8776 check inter 2000 rise 2 fall 5
+        server controller3 {{ HA_PROXY_CONFIG.controller3 }}:8776 check inter 2000 rise 2 fall 5
