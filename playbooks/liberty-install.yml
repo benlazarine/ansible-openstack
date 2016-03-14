@@ -118,7 +118,7 @@
   roles:
     - liberty-cinder
   tags:
-    - cinder
+    - liberty-cinder
 
 # - name: set up and configure cinder storage node
 #   hosts:

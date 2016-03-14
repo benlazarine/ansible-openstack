@@ -570,6 +570,10 @@ CINDER_CONFIG:
 # Cinder Storage Setup #
 ########################
 CINDER_STORAGE_CONFIG:
+  packages:
+    - lvm2
+    - cinder-volume
+    - python-mysqldb
   lvm:
     physical_volume: /dev/sdc
     metadatasize: 2048
