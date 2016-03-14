@@ -540,10 +540,18 @@ HORIZON_CONFIG:
     template: "local_settings.py.j2"
     dest: "/etc/openstack-dashboard/local_settings.py"  
     time_zone: "America/Phoenix"
+
 ################
 # Cinder Setup #
 ################
 CINDER_CONFIG:
+  packages:
+    - cinder-api
+    - cinder-scheduler
+    - python-cinderclient
+  services:
+    - cinder-scheduler
+    - cinder-api
   cinder_conf:
     template: "cinder.conf.j2"
     dest: "/etc/cinder/cinder.conf"

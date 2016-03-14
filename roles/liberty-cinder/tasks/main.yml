@@ -2,10 +2,7 @@
 
 - name: install cinder dependencies
   apt: name={{ item }} state=present
-  with_items:
-    - cinder-api
-    - cinder-scheduler
-    - python-cinderclient
+  with_items: CINDER_CONFIG.packages
   tags:
     - install
 
@@ -24,15 +21,15 @@
 
 - name: restart nova-api services
   service: name=nova-api state=restarted enabled=yes
+  delegate_to: "{{ item }}"
+  with_items: COMPUTE_NODES
   tags:
     - compute
     - nova-api-restart
 
 - name: restart block storage services
   service: name={{ item }} state=restarted enabled=yes
-  with_items:
-    - cinder-scheduler
-    - cinder-api
+  with_items: CINDER_CONFIG.services
   tags:
     - block-storage-service-restart
 

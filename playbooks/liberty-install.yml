@@ -112,15 +112,13 @@
   tags:
     - liberty-horizon
 
-# - name: set up and configure cinder controller
-#   hosts:
-#     - controllers
-#   # 'remote_user' required for syncronize module to run as root between hosts
-#   remote_user: root
-#   roles:
-#     - liberty-cinder
-#   tags:
-#     - cinder
+- name: set up and configure cinder controller
+  hosts:
+    - controllers
+  roles:
+    - liberty-cinder
+  tags:
+    - cinder
 
 # - name: set up and configure cinder storage node
 #   hosts:
