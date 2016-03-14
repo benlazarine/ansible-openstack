@@ -36,7 +36,7 @@ connection = {{ CINDER_CONFIG.cinder_conf.properties.connection }}
 
 [keystone_authtoken]
 
-identity_uri = {{ CINDER_CONFIG.cinder_conf.properties.auth_uri }}
+auth_uri = {{ CINDER_CONFIG.cinder_conf.properties.auth_uri }}
 auth_url = {{ CINDER_CONFIG.cinder_conf.properties.auth_url }}
 auth_plugin = password
 project_domain_id = default

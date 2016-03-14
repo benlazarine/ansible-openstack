@@ -555,14 +555,12 @@ CINDER_CONFIG:
   cinder_conf:
     template: "cinder.conf.j2"
     dest: "/etc/cinder/cinder.conf"
-    # NOTE: at this time, all variables are pulled from NOVA_CONFIG.nova_conf
     properties:
       verbose: True
       debug: True
       connection: "mysql+pymysql://cinder:{{ CINDER_DBPASS }}@{{ HA_PROXY_PUBLIC_IP }}/cinder"
       admin_user: "cinder"
       admin_password: "{{ CINDER_PASS }}"
-      # NOTE: at this time, all variables are pulled from NOVA_CONFIG.nova_conf
       auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
       auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
 
@@ -575,19 +573,17 @@ CINDER_STORAGE_CONFIG:
     - cinder-volume
     - python-mysqldb
   lvm:
-    physical_volume: /dev/sdc
+    physical_volume: sda
     metadatasize: 2048
-    volume_group_name: cinder-volumes
+    volume_group_name: "cinder-volumes"
   cinder_conf:
     template: "cinder.conf.j2"
     dest: "/etc/cinder/cinder.conf"
-    # NOTE: at this time, all variables are pulled from NOVA_CONFIG.nova_conf
     properties:
       verbose: True
       debug: True
       connection: "mysql+pymysql://cinder:{{ CINDER_DBPASS }}@{{ HA_PROXY_PUBLIC_IP }}/cinder"
       admin_user: "cinder"
       admin_password: "{{ CINDER_PASS }}"
-      # NOTE: at this time, all variables are pulled from NOVA_CONFIG.nova_conf
       auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
       auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
