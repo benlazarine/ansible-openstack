@@ -6,7 +6,7 @@ rootwrap_config = /etc/cinder/rootwrap.conf
 api_paste_confg = /etc/cinder/api-paste.ini
 iscsi_helper = tgtadm
 volume_name_template = volume-%s
-volume_group = cinder-volumes
+volume_group = {{ CINDER_STORAGE_CONFIG.lvm.volume_group_name }}
 auth_strategy = keystone
 state_path = /var/lib/cinder
 lock_path = /var/lock/cinder
@@ -26,7 +26,7 @@ lock_path = /var/lib/cinder/tmp
 
 [oslo_messaging_rabbit]
 
-rabbit_host = {{ RABBITMQ_CONFIG.master_node }}
+rabbit_hosts = {{ RABBITMQ_CONFIG.rabbit_hosts }}
 rabbit_userid = {{ RABBITMQ_CONFIG.rabbit_userid }}
 rabbit_password = {{ RABBITMQ_CONFIG.rabbit_password }}
 

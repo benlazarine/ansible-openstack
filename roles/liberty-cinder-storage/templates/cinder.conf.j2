@@ -6,12 +6,15 @@ rootwrap_config = /etc/cinder/rootwrap.conf
 api_paste_confg = /etc/cinder/api-paste.ini
 iscsi_helper = tgtadm
 volume_name_template = volume-%s
-volume_group = cinder-volumes
-verbose = True
+# volume_group = cinder-volumes
 auth_strategy = keystone
 state_path = /var/lib/cinder
 lock_path = /var/lock/cinder
 volumes_dir = /var/lib/cinder/volumes
+
+enabled_backends = lvm
+
+glance_host = {{ HA_PROXY_PUBLIC_IP }}
 
 rpc_backend = rabbit
 
@@ -27,7 +30,7 @@ lock_path = /var/lib/cinder/tmp
 
 [oslo_messaging_rabbit]
 
-rabbit_host = {{ RABBITMQ_CONFIG.rabbitserver }}
+rabbit_hosts = {{ RABBITMQ_CONFIG.rabbit_hosts }}
 rabbit_userid = {{ RABBITMQ_CONFIG.rabbit_userid }}
 rabbit_password = {{ RABBITMQ_CONFIG.rabbit_password }}
 
@@ -37,7 +40,7 @@ connection = {{ CINDER_CONFIG.cinder_conf.properties.connection }}
 
 [keystone_authtoken]
 
-identity_uri = {{ NOVA_COMPUTE_CONFIG.nova_conf.properties.auth_uri }}
+auth_uri = {{ NOVA_COMPUTE_CONFIG.nova_conf.properties.auth_uri }}
 auth_url = {{ NOVA_COMPUTE_CONFIG.nova_conf.properties.auth_url }}
 auth_plugin = password
 project_domain_id = default
@@ -45,3 +48,9 @@ user_domain_id = default
 project_name = {{ KEYSTONE.service_tenant }}
 username = {{ CINDER_CONFIG.cinder_conf.properties.admin_user }}
 password = {{ CINDER_CONFIG.cinder_conf.properties.admin_password }}
+
+[lvm]
+volume_driver = cinder.volume.drivers.lvm.LVMVolumeDriver
+volume_group = {{ CINDER_STORAGE_CONFIG.lvm.volume_group_name }}
+iscsi_protocol = iscsi
+iscsi_helper = tgtadm

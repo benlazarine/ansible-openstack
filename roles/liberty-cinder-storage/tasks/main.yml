@@ -2,42 +2,35 @@
 
 - name: install cinder storage dependencies
   apt: name={{ item }} state=present
-  with_items:
-    - lvm2
-    - cinder-volume
-    - python-mysqldb
+  with_items: CINDER_STORAGE_CONFIG.packages
   tags:
     - install
 
-- name: create the LVM physical volume
-  lvg: vg=vg_cinder pvs={{ CINDER_STORAGE_CONFIG.lvm_pv }} pesize=32
+# /sbin/parted /dev/sda -s mklabel gpt
+# /sbin/parted /dev/sda -s mkpart primary 0% 100%
+# /sbin/parted /dev/sda -s set 1 lvm on
+# parted /dev/sda -s p
 
 - name: template cinder.conf
-  template: src="{{ CINDER_CONFIG.cinder_conf.template }}" dest="{{ CINDER_CONFIG.cinder_conf.dest }}" backup=yes
+  template: src="{{ CINDER_STORAGE_CONFIG.cinder_conf.template }}" dest="{{ CINDER_STORAGE_CONFIG.cinder_conf.dest }}" backup=yes
   tags:
     - cinder
     - template
-    - config
 
-- name: populate cinder service database
-  shell: su -s /bin/sh -c "cinder-manage db sync" cinder
+- name: template lvm.conf
+  template: src="{{ CINDER_STORAGE_CONFIG.lvm_conf.template }}" dest="{{ CINDER_STORAGE_CONFIG.lvm_conf.dest }}" backup=yes
   tags:
-    - cinder
-    - db_sync
+    - lvm
+    - template
 
-- name: restart nova-api services on all compute nodes
-  service: name=nova-api state=restarted enabled=yes
-  delegate_to: "{{ item }}"
-  with_items: "{{ COMPUTE_NODES }}"
+- name: create the LVM physical volume
+  lvg: vg={{ CINDER_STORAGE_CONFIG.lvm.volume_group_name }} pvs=/dev/{{ CINDER_STORAGE_CONFIG.lvm.physical_volume }} vg_options="--metadatasize {{ CINDER_STORAGE_CONFIG.lvm.metadatasize }}"
   tags:
-    - compute
-    - nova-api-restart
+    - lvm
 
 - name: restart block storage services
   service: name={{ item }} state=restarted enabled=yes
-  with_items:
-    - cinder-scheduler
-    - cinder-api
+  with_items: CINDER_STORAGE_CONFIG.services
   tags:
     - block-storage-service-restart
 

@@ -15,16 +15,12 @@
 
 - name: populate cinder service database
   shell: su -s /bin/sh -c "cinder-manage db sync" cinder
-  delegate_to: "{{ item }}"
-  with_items: "{{ CONTROLLER_NODES }}"
   tags:
     - cinder
     - db_sync
 
 - name: restart nova-api services
   service: name=nova-api state=restarted enabled=yes
-  delegate_to: "{{ item }}"
-  with_items: "{{ CONTROLLER_NODES }}"
   tags:
     - compute
     - nova-api-restart

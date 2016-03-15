@@ -572,9 +572,12 @@ CINDER_STORAGE_CONFIG:
     - lvm2
     - cinder-volume
     - python-mysqldb
+  services:
+    - tgt
+    - cinder-volume
   lvm:
     physical_volume: sda
-    metadatasize: 2048
+    metadatasize: 4096
     volume_group_name: "cinder-volumes"
   cinder_conf:
     template: "cinder.conf.j2"
@@ -587,3 +590,6 @@ CINDER_STORAGE_CONFIG:
       admin_password: "{{ CINDER_PASS }}"
       auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
       auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
+  lvm_conf:
+    template: "lvm.conf.j2"
+    dest: "/etc/lvm/lvm.conf"

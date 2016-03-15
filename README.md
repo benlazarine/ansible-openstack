@@ -1,6 +1,9 @@
 # Ansible-OpenStack
 Deploy OpenStack on Bare Metal using Ansible
 
+## Host Configuration
+All machines are installed and configured using a combination of MaaS and Ansible.  Please note that `LVM` should NOT be used in this configuration, as it will break `cinder`, as it has special rules for exclusions that will break the host operating system.  See the warning [here.](http://docs.openstack.org/liberty/install-guide-ubuntu/cinder-storage-install.html)
+
 ## Generating Credentials
 ### Create credentials Ansible Vault (Automatically)
 1. Create Ansible credentials Vault (clear-text)
