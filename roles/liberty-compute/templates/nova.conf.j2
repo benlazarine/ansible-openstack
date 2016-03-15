@@ -29,7 +29,8 @@ verbose = {{ NOVA_CONFIG.nova_conf.properties.verbose | default(false) }}
 
 [oslo_messaging_rabbit]
 
-rabbit_host = {{ RABBITMQ_CONFIG.master_node }}
+# rabbit_host = {{ RABBITMQ_CONFIG.master_node }}
+rabbit_hosts = {{ RABBITMQ_CONFIG.rabbit_hosts }}
 rabbit_userid = {{ RABBITMQ_CONFIG.rabbit_userid }}
 rabbit_password = {{ RABBITMQ_CONFIG.rabbit_password }}
 

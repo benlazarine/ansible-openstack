@@ -485,6 +485,7 @@ allow_overlapping_ips = True
 
 # RabbitMQ HA cluster host:port pairs. (list value)
 # rabbit_hosts=$rabbit_host:$rabbit_port
+rabbit_hosts = {{ RABBITMQ_CONFIG.rabbit_hosts }}
 
 # Connect over SSL for RabbitMQ. (boolean value)
 # rabbit_use_ssl=false
@@ -1003,7 +1004,7 @@ lock_path = $state_path/lock
 # Deprecated group/name - [DEFAULT]/rabbit_host
 # rabbit_host = localhost
 
-rabbit_host = {{ RABBITMQ_CONFIG.master_node }}
+# rabbit_host = {{ RABBITMQ_CONFIG.master_node }}
 
 # The RabbitMQ broker port where a single node is used. (integer value)
 # Deprecated group/name - [DEFAULT]/rabbit_port
