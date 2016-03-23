@@ -576,7 +576,7 @@ CINDER_STORAGE_CONFIG:
     - tgt
     - cinder-volume
   lvm:
-    physical_volume: sda
+    physical_volume: "{{ CINDER_VOLUME.physical_volume }}"
     metadatasize: 4096
     volume_group_name: "cinder-volumes"
   cinder_conf:

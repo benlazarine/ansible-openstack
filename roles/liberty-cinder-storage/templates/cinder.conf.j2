@@ -18,8 +18,6 @@ glance_host = {{ HA_PROXY_PUBLIC_IP }}
 
 rpc_backend = rabbit
 
-auth_strategy = keystone
-
 debug = {{ CINDER_CONFIG.cinder_conf.properties.debug | default(false) }}
 
 verbose = {{ CINDER_CONFIG.cinder_conf.properties.verbose | default(false) }}
