@@ -5,73 +5,27 @@ Deploy OpenStack on Bare Metal using Ansible
 All machines are installed and configured using a combination of MaaS and Ansible.  Please note that `LVM` should NOT be used in this configuration, as it will break `cinder`, as it has special rules for exclusions that will break the host operating system.  See the warning [here.](http://docs.openstack.org/liberty/install-guide-ubuntu/cinder-storage-install.html)
 
 ## Generating Credentials
-### Create credentials Ansible Vault (Automatically)
-1. Create Ansible credentials Vault (clear-text)
-```
-./generate-credentials.sh
-```
-
-OR
-
-
-1. Create Ansible credentials Vault (encrypted)
-```
-./generate-credentials.sh -y
-```
-1. Open Encrypted file:
-```
-ansible-vault edit openstack-liberty-creds.yml  --vault-password-file .vault_pass.txt
-```
-
-### Create credentials file using Ansible Vault (Manually)
-
-```bash
-cat > openstack-creds.txt << EOF
-ADMIN_PASS Password of user admin
-CEILOMETER_DBPASS Database password for the Telemetry service
-CEILOMETER_PASS Password of Telemetry service user ceilometer
-CINDER_DBPASS Database password for the Block Storage service
-CINDER_PASS Password of Block Storage service user cinder
-DASH_DBPASS Database password for the dashboard
-DEMO_PASS Password of user demo
-GLANCE_DBPASS Database password for Image service
-GLANCE_PASS Password of Image service user glance
-HEAT_DBPASS Database password for the Orchestration service
-HEAT_DOMAIN_PASS Password of Orchestration domain
-HEAT_PASS Password of Orchestration service user heat
-KEYSTONE_DBPASS Database password of Identity service
-NEUTRON_DBPASS Database password for the Networking service
-NEUTRON_PASS Password of Networking service user neutron
-NOVA_DBPASS Database password for Compute service
-NOVA_PASS Password of Compute service user nova
-RABBIT_PASS Password of user guest of RabbitMQ
-SAHARA_DBPASS Database password of Data processing service
-SWIFT_PASS Password of Object Storage service user swift
-TROVE_DBPASS Database password of Database service
-TROVE_PASS Password of Database service user trove
-MYSQL_PASS_ROOT MySQL root password
-MYSQL_PASS_SST MySQL SST password for HAProxy
-MYSQL_PASS_GALERA_HEALTH Galera Health for HAProxy
-ADMIN_TOKEN Admin token for Openstack account
-EOF
-```
-
+### Create credentials Ansible Vault
 1. Create Ansible credentials Vault
-```
-gawk '{ print $1 }' openstack-creds.txt | while read -r line; do i=`openssl rand -hex 10`; echo $line: $i; done > openstack-liberty-creds.yml
-```
-1. Create vault pass:
-```
-pwgen 12 > .vault_pass.txt
-```
-1. Encrypt Ansible Vault:
-```
-ansible-vault encrypt openstack-liberty-creds.yml  --vault-password-file .vault_pass.txt
-```
+	1. Generating clear-text
+	
+		```
+		./generate-credentials.sh
+		```
+	
+	1. Generating encrypted
+		
+		```
+		./generate-credentials.sh -y
+		```
+
 1. Open Encrypted file:
 ```
 ansible-vault edit openstack-liberty-creds.yml  --vault-password-file .vault_pass.txt
 ```
+
+If one instead prefers to do this manaully, see the instructions [here.](docs/Generating-Credentials-Manually.md)
+
 
 ## Ansible Install
 
@@ -105,3 +59,15 @@ ansible-vault edit openstack-liberty-creds.yml  --vault-password-file .vault_pas
 1. Install OpenStack Liberty (Do one tag at a time):
 
 	`ansible-playbook playbooks/liberty-install.yml --vault-password-file .vault_pass.txt -e @openstack-liberty-creds.yml` --tags "<service-to-deploy>"
+
+## OpenStack Services
+
+For a list of services and how to restart them, refer to the document [here.](docs/OpenStack-Services.md)
+
+## Network Troubleshooting
+
+See the network troubleshooting documentation [here.](docs/Network-Troubleshooting.md)
+
+## References
+
+For a list of helpful links and references, see them [here.](docs/Helpful-Sites.md)
