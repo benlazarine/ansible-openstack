@@ -1,100 +1,99 @@
 ---
 
-# - name: prep all openstack nodes
-#   hosts:
-#     - openstack
-#   roles:
-#     - liberty-common
-#   tags:
-#     - liberty-prep
-#     - common
+- name: prep all openstack nodes
+  hosts:
+    - openstack
+  roles:
+    - liberty-common
+  tags:
+    - liberty-prep
+    - common
 
-# - name: set up haproxy for all openstack services
-#   hosts:
-#     - haproxy
-#   roles:
-#     - liberty-haproxy
-#   tags:
-#     - liberty-haproxy
-#     - db
+- name: set up haproxy for all openstack services
+  hosts:
+    - haproxy
+  roles:
+    - liberty-haproxy
+  tags:
+    - liberty-haproxy
+    - db
 
-# - name: set up galera cluster
-#   hosts:
-#     - controllers
-#   roles:
-#     - liberty-db-setup-mounts
-#     - cso-galera
-#   tags:
-#     - liberty-mysql
-#     - galera
-#     - db
+- name: set up galera cluster
+  hosts:
+    - controllers
+  roles:
+    - liberty-db-setup-mounts
+    - cso-galera
+  tags:
+    - liberty-mysql
+    - galera
+    - db
 
-# - name: set up rabbitmq cluster
-#   hosts:
-#     - controllers
-#   roles:
-#     - cso-rabbitmq
-#   tags:
-#     - liberty-rabbitmq
+- name: set up rabbitmq cluster
+  hosts:
+    - controllers
+  roles:
+    - cso-rabbitmq
+  tags:
+    - liberty-rabbitmq
 
-# - name: set up rabbitmq users and openstack databases
-#   hosts:
-#     - controllers
-#   roles:
-#     - liberty-dbsetup
-#   tags:
-#     - rabbitmq
-#     - db
+- name: set up rabbitmq users and openstack databases
+  hosts:
+    - controllers
+  roles:
+    - liberty-dbsetup
+  tags:
+    - rabbitmq
+    - db
 
+# At this point, manually run: mysql_secure_installation
+# I will add code later to do this using Ansible
 
-# # At this point, manually run: mysql_secure_installation
-# # I will add code later to do this using Ansible
+- name: set up and configure keystone
+  hosts:
+    - controllers
+  remote_user: root
+  roles:
+    - liberty-keystone
+    - liberty-keystone-setup
+  tags:
+    - liberty-keystone
 
-# - name: set up and configure keystone
-#   hosts:
-#     - controllers
-#   remote_user: root
-#   roles:
-#     - liberty-keystone
-#     - liberty-keystone-setup
-#   tags:
-#     - liberty-keystone
+- name: set up and configure glance
+  hosts:
+    - glance
+  remote_user: root
+  roles:
+    - liberty-glance
+  tags:
+    - liberty-glance
 
-# - name: set up and configure glance
-#   hosts:
-#     - glance
-#   remote_user: root
-#   roles:
-#     - liberty-glance
-#   tags:
-#     - liberty-glance
+- name: set up and configure nova
+  hosts:
+    - controllers
+  remote_user: root
+  roles:
+    - liberty-nova
+  tags:
+    - liberty-nova
 
-# - name: set up and configure nova
-#   hosts:
-#     - controllers
-#   remote_user: root
-#   roles:
-#     - liberty-nova
-#   tags:
-#     - liberty-nova
+- name: set up and configure compute node(s)
+  hosts:
+    - compute
+  remote_user: root
+  roles:
+    - liberty-compute
+  tags:
+    - liberty-compute-nodes
 
-# - name: set up and configure compute node(s)
-#   hosts:
-#     - compute
-#   remote_user: root
-#   roles:
-#     - liberty-compute
-#   tags:
-#     - liberty-compute-nodes
-
-# - name: set up and configure neutron node
-#   hosts:
-#     - neutron
-#   remote_user: root
-#   roles:
-#     - liberty-neutron
-#   tags:
-#     - liberty-neutron
+- name: set up and configure neutron node
+  hosts:
+    - neutron
+  remote_user: root
+  roles:
+    - liberty-neutron
+  tags:
+    - liberty-neutron
 
 # - name: set up and configure neutron networks
 #   hosts:
@@ -104,13 +103,13 @@
 #   tags:
 #     - liberty-neutron-networks
 
-# - name: set up and configure horizon
-#   hosts:
-#     - controllers
-#   roles:
-#     - liberty-horizon
-#   tags:
-#     - liberty-horizon
+- name: set up and configure horizon
+  hosts:
+    - controllers
+  roles:
+    - liberty-horizon
+  tags:
+    - liberty-horizon
 
 - name: set up and configure cinder controller
   hosts:
@@ -127,3 +126,11 @@
     - liberty-cinder-storage
   tags:
     - liberty-cinder-storage
+
+- name: set up and configure ceilometer for all controllers
+  hosts:
+    - controllers
+  roles:
+    - liberty-ceilometer
+  tags:
+    - liberty-ceilometer

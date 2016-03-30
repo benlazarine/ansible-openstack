@@ -1,0 +1,19 @@
+---
+
+- name: install ceilometer dependencies
+  apt: name={{ item }} state=present
+  with_items: CEILOMETER_CONFIG.packages
+  tags:
+    - install
+
+- name: template ceilometer.conf
+  template: src="{{ CEILOMETER_CONFIG.ceilometer_conf.template }}" dest="{{ CEILOMETER_CONFIG.ceilometer_conf.dest }}" backup=yes
+  tags:
+    - ceilometer
+    - template
+
+- name: restart ceilometer services
+  service: name={{ item }} state=restarted enabled=yes
+  with_items: CEILOMETER_CONFIG.services
+  tags:
+    - ceilometer-service-restart

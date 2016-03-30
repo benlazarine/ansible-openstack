@@ -65,6 +65,33 @@ OR
 service cinder-scheduler restart && service cinder-api restart
 ```
 
+### Ceilometer
+Services:
+
+```
+ceilometer-agent-central
+ceilometer-agent-notification
+ceilometer-api
+ceilometer-collector
+ceilometer-alarm-evaluator
+ceilometer-alarm-notifier
+```
+
+Restart:
+
+```
+service ceilometer-agent-central restart
+service ceilometer-agent-notification restart
+service ceilometer-api restart
+service ceilometer-collector restart
+service ceilometer-alarm-evaluator restart
+service ceilometer-alarm-notifier restart
+
+OR
+
+service ceilometer-agent-central restart && service ceilometer-agent-notification restart && service ceilometer-api restart && service ceilometer-collector restart && service ceilometer-alarm-evaluator restart && service ceilometer-alarm-notifier restart
+```
+
 ### Galera MySQL Cluster
 **IMPORTANT!!** Do not restart this service on all nodes at once, or it could destroy the cluster!
 

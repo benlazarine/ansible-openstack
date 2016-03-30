@@ -593,3 +593,34 @@ CINDER_STORAGE_CONFIG:
   lvm_conf:
     template: "lvm.conf.j2"
     dest: "/etc/lvm/lvm.conf"
+
+####################
+# Ceilometer Setup #
+####################
+CEILOMETER_CONFIG:
+  packages:
+    - ceilometer-api
+    - ceilometer-collector
+    - ceilometer-agent-central
+    - ceilometer-agent-notification
+    - ceilometer-alarm-evaluator
+    - ceilometer-alarm-notifier
+    - python-ceilometerclient
+  services:
+    - ceilometer-agent-central
+    - ceilometer-agent-notification
+    - ceilometer-api
+    - ceilometer-collector
+    - ceilometer-alarm-evaluator
+    - ceilometer-alarm-notifier
+  ceilometer_conf:
+    template: "ceilometer.conf.j2"
+    dest: "/etc/ceilometer/ceilometer.conf"
+    properties:
+      verbose: True
+      debug: True
+      connection: "mysql+pymysql://ceilometer:{{ CEILOMETER_DBPASS }}@{{ HA_PROXY_PUBLIC_IP }}:27017/ceilometer"
+      admin_user: "ceilometer"
+      admin_password: "{{ CEILOMETER_DBPASS }}"
+      auth_uri: "http://{{ HA_PROXY_PUBLIC_IP }}:5000"
+      auth_url: "http://{{ HA_PROXY_PUBLIC_IP }}:35357"
