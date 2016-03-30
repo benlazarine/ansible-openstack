@@ -31,13 +31,19 @@ service nova-api restart && service nova-cert restart && service nova-consoleaut
 Services:
 
 ```
+keystone
 apache2
 ```
 
 Restart:
 
 ```
+service keystone restart
 service apache2 restart
+
+OR
+
+service keystone restart && service apache2 restart
 ```
 
 ### Cinder API
@@ -133,7 +139,7 @@ service apache2 restart
 
 OR
 
-service memcached restart && service apache2 restart
+service keystone stop && service memcached restart && service apache2 restart && service keystone start
 ```
 
 ## Neutron Network Node
