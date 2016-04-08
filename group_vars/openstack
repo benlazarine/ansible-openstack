@@ -50,3 +50,9 @@ NEUTRON_NETWORKS:
     atmoadmin:
       network: 172.16.0.0/24
       gateway: 172.16.0.1
+
+##########
+# Cinder #
+##########
+CINDER_VOLUME:
+  physical_volume: sdb
