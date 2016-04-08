@@ -29,7 +29,7 @@ OS_CREDS:
 # Galera Cluster #
 ##################
 CONTROLLERS:
-  mysql_mnt: /dev/sdb
+  mysql_mnt: "{{ DATABASE_VOLUME }}"
 GALERA_CONFIG:
   master_node: "{{ MASTER_NODE }}"
   nodes: 

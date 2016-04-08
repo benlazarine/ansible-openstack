@@ -36,6 +36,11 @@ HA_PROXY_CONFIG:
   controller2: 10.0.2.3
   controller3: 10.0.2.4
 
+##########################
+# Database Configuration #
+##########################
+DATABASE_VOLUME: /dev/sdb
+
 ####################
 # Network Creation #
 ####################
