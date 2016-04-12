@@ -212,6 +212,11 @@
   tags:
     - ovs
 
+- name: ensure openvswitch is running
+  service: name=openvswitch-switch state=started
+  tags:
+    - ovs
+
 - name: create all bridges on network node
   openvswitch_bridge: bridge="{{ item.value.bridge }}" state=present
   with_dict: "{{ NEUTRON_CONFIG.interfaces }}"

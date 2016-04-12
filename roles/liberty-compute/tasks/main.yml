@@ -81,9 +81,13 @@
 #########################
 # Configure OVS Bridges #
 #########################
-
 - name: load openvswitch module 
   modprobe: name=openvswitch state=present
+  tags:
+    - ovs
+
+- name: ensure openvswitch is running
+  service: name=openvswitch-switch state=started
   tags:
     - ovs
 
