@@ -10,6 +10,7 @@ verbose = {{ NOVA_COMPUTE_CONFIG.neutron_conf.properties.verbose | default(false
 # value is "False" to support legacy mode (centralized) routers.
 #
 # router_distributed = False
+router_distributed = True
 #
 # ===========End Global Config Option for Distributed L3 Router===============
 
@@ -107,6 +108,7 @@ auth_strategy = keystone
 # A 4 octet example would be dvr_base_mac = fa:16:3f:4f:00:00
 # The default is 3 octet
 # dvr_base_mac = fa:16:3f:00:00:00
+dvr_base_mac = fa:16:3f:00:00:00
 
 # Maximum amount of retries to generate a unique MAC address
 # mac_generation_retries = 16
@@ -986,7 +988,6 @@ lock_path = $state_path/lock
 # The RabbitMQ broker address where a single node is used. (string value)
 # Deprecated group/name - [DEFAULT]/rabbit_host
 # rabbit_host = localhost
-# rabbit_host = {{ RABBITMQ_CONFIG.rabbitserver }}
 
 # The RabbitMQ broker port where a single node is used. (integer value)
 # Deprecated group/name - [DEFAULT]/rabbit_port

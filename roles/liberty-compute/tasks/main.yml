@@ -1,20 +1,29 @@
 ---
-
+################
+# Dependencies #
+################
 - name: install compute node dependencies
   apt: name={{ item }} state=present
-  with_items:
-    - nova-compute
-    - sysfsutils
-    - neutron-plugin-openvswitch
-    - neutron-plugin-ml2
-    - neutron-plugin-openvswitch-agent
-    - neutron-l3-agent
-    - neutron-metadata-agent
-    - python-neutronclient
-    - vlan
+  with_items: NOVA_COMPUTE_CONFIG.packages
   tags:
     - install
 
+- name: enable 8021q kernel module
+  modprobe: name=8021q state=present
+  tags:
+    - kernel
+    - modprobe
+
+- name: change sysctl for neutron
+  sysctl: name="{{ item.name }}" value="{{ item.option }}" state=present reload=yes
+  with_items: NOVA_COMPUTE_CONFIG.sysctl_modules
+  tags:
+    - sysctl
+    - networking
+
+################
+# Nova Compute #
+################
 - name: template nova.conf
   template: src="{{ NOVA_COMPUTE_CONFIG.nova_conf.template }}" dest="{{ NOVA_COMPUTE_CONFIG.nova_conf.dest }}" backup=yes
   tags:
@@ -31,11 +40,35 @@
     - template
     - config
 
+###########
+# Neutron #
+###########
+- name: template neutron.conf
+  template: src="{{ NOVA_COMPUTE_CONFIG.neutron_conf.template }}" dest="{{ NOVA_COMPUTE_CONFIG.neutron_conf.dest }}" backup=yes
+  tags:
+    - neutron
+    - template
+    - config
+
 - name: template ml2_conf.ini.j2
   template: src="{{ NOVA_COMPUTE_CONFIG.ml2_conf_ini.template }}" dest="{{ NOVA_COMPUTE_CONFIG.ml2_conf_ini.dest }}" backup=yes
   tags:
     - nova
     - compute
+    - template
+    - config
+
+- name: template l3_agent.ini
+  template: src="{{ NOVA_COMPUTE_CONFIG.l3_agent_ini.template }}" dest="{{ NOVA_COMPUTE_CONFIG.l3_agent_ini.dest }}" backup=yes
+  tags:
+    - neutron
+    - template
+    - config
+
+- name: template metadata_agent.ini
+  template: src="{{ NOVA_COMPUTE_CONFIG.metadata_agent_ini.template }}" dest="{{ NOVA_COMPUTE_CONFIG.metadata_agent_ini.dest }}" backup=yes
+  tags:
+    - neutron
     - template
     - config
 
@@ -47,6 +80,9 @@
     - template
     - config
 
+########################
+# Virtualization Check #
+########################
 - name: run command to check if cpu supports hardware acceleration
   shell: egrep -c '(vmx|svm)' /proc/cpuinfo
   register: cpu_hw_acc
@@ -119,12 +155,13 @@
   tags:
     - ovs
 
-- name: restart nova-compute
-  service: name=nova-compute state=restarted enabled=yes
-  tags:
-    - nova-compute
-
 - name: remove /var/lib/nova/nova.sqlite
   file: path=/var/lib/nova/nova.sqlite state=absent
   tags:
     - cleanup
+
+- name: restart neutron services
+  service: name={{ item }} state=restarted enabled=yes
+  with_items: NOVA_COMPUTE_CONFIG.services
+  tags:
+    - neutron-service-restart

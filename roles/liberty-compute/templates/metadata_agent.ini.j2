@@ -1,22 +1,22 @@
 [DEFAULT]
 # Show debugging output in log (sets DEBUG log level output)
 # debug = True
-verbose = {{ NEUTRON_CONFIG.compute.metadata_agent_ini.properties.verbose | default(false) }}
+verbose = {{ NOVA_COMPUTE_CONFIG.metadata_agent_ini.properties.verbose | default(false) }}
 
 nova_metadata_ip = {{ HA_PROXY_PUBLIC_IP }}
 
 metadata_proxy_shared_secret = {{ METADATA_SECRET }}
 
 # The Neutron user information for accessing the Neutron API.
-auth_url = {{ NEUTRON_CONFIG.compute.metadata_agent_ini.properties.auth_url }}
+auth_url = {{ NOVA_COMPUTE_CONFIG.metadata_agent_ini.properties.auth_url }}
 auth_region = {{ KEYSTONE_REGION }}
 # Turn off verification of the certificate for ssl
 # auth_insecure = False
 # Certificate Authority public key (CA cert) file for ssl
 # auth_ca_cert =
 admin_tenant_name = {{ KEYSTONE.service_tenant }}
-admin_user = {{ NEUTRON_CONFIG.compute.metadata_agent_ini.properties.admin_user }}
-admin_password = {{ NEUTRON_CONFIG.compute.metadata_agent_ini.properties.admin_password }}
+admin_user = {{ NOVA_COMPUTE_CONFIG.metadata_agent_ini.properties.admin_user }}
+admin_password = {{ NOVA_COMPUTE_CONFIG.metadata_agent_ini.properties.admin_password }}
 
 # Network service endpoint type to pull from the keystone catalog
 # endpoint_type = adminURL

@@ -1,7 +1,7 @@
 [DEFAULT]
 # Show debugging output in log (sets DEBUG log level output)
 # debug = False
-verbose = {{ NEUTRON_CONFIG.compute.l3_agent_ini.properties.verbose | default(false) }}
+verbose = {{ NOVA_COMPUTE_CONFIG.l3_agent_ini.properties.verbose | default(false) }}
 
 # L3 requires that an interface driver be set. Choose the one that best
 # matches your plugin.

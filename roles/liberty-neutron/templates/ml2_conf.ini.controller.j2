@@ -4,7 +4,7 @@
 #
 # type_drivers = local,flat,vlan,gre,vxlan,geneve
 # Example: type_drivers = flat,vlan,gre,vxlan,geneve
-type_drivers = flat,vlan,gre,vxlan
+type_drivers = flat,vlan,vxlan
 
 # (ListOpt) Ordered list of network_types to allocate as tenant
 # networks. The default value 'local' is useful for single-box testing
@@ -12,7 +12,7 @@ type_drivers = flat,vlan,gre,vxlan
 #
 # tenant_network_types = local
 # Example: tenant_network_types = vlan,gre,vxlan,geneve
-tenant_network_types = vlan,gre,vxlan
+tenant_network_types = vlan,vxlan
 
 # (ListOpt) Ordered list of networking mechanism driver entrypoints
 # to be loaded from the neutron.ml2.mechanism_drivers namespace.
@@ -85,7 +85,6 @@ flat_networks = external
 [ml2_type_gre]
 # (ListOpt) Comma-separated list of <tun_min>:<tun_max> tuples enumerating ranges of GRE tunnel IDs that are available for tenant network allocation
 # tunnel_id_ranges =
-tunnel_id_ranges = {{ NEUTRON_CONFIG.controller.ml2_conf_ini.properties.tunnel_id_ranges }}
 
 [ml2_type_vxlan]
 # (ListOpt) Comma-separated list of <vni_min>:<vni_max> tuples enumerating

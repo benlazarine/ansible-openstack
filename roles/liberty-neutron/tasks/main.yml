@@ -134,75 +134,12 @@
 # Compute Node(s) #
 ###################
 
-- name: install compute node setup dependencies
-  apt: name={{ item[0] }} state=present
-  delegate_to: "{{ item[1] }}"
-  with_nested:
-    - "{{ NEUTRON_CONFIG.compute.packages }}"
-    - "{{ COMPUTE_NODES }}"
-  tags:
-    - install
-    - compute-node
 
-- name: enable 8021q kernel module on network node
-  modprobe: name=8021q state=present
-  delegate_to: "{{ item }}"
-  with_items: "{{ COMPUTE_NODES }}"
-  tags:
-    - kernel
-    - modprobe
-    - compute-node
 
-- name: change sysctl for neutron on compute nodes
-  sysctl: name="{{ item[0].name }}" value="{{ item[0].option }}" state=present reload=yes
-  delegate_to: "{{ item[1] }}"
-  with_nested:
-    - "{{ NEUTRON_CONFIG.compute.sysctl_modules }}"
-    - "{{ COMPUTE_NODES }}"
-  tags:
-    - sysctl
-    - networking
-    - compute-node
 
-- name: template neutron.conf to compute nodes
-  template: src="{{ NEUTRON_CONFIG.compute.neutron_conf.template }}" dest="{{ NEUTRON_CONFIG.compute.neutron_conf.dest }}" backup=yes
-  delegate_to: "{{ item }}"
-  with_items: "{{ COMPUTE_NODES }}"
-  tags:
-    - neutron
-    - template
-    - config
-    - compute-node
 
-- name: template l3_agent.ini to compute nodes
-  template: src="{{ NEUTRON_CONFIG.compute.l3_agent_ini.template }}" dest="{{ NEUTRON_CONFIG.compute.l3_agent_ini.dest }}" backup=yes
-  delegate_to: "{{ item }}"
-  with_items: "{{ COMPUTE_NODES }}"
-  tags:
-    - neutron
-    - template
-    - config
-    - compute-node
 
-- name: template metadata_agent.ini to compute nodes
-  template: src="{{ NEUTRON_CONFIG.compute.metadata_agent_ini.template }}" dest="{{ NEUTRON_CONFIG.compute.metadata_agent_ini.dest }}" backup=yes
-  delegate_to: "{{ item }}"
-  with_items: "{{ COMPUTE_NODES }}"
-  tags:
-    - neutron
-    - template
-    - config
-    - compute-node
 
-- name: restart neutron services on compute nodes
-  service: name={{ item[0] }} state=restarted enabled=yes
-  delegate_to: "{{ item[1] }}"
-  with_nested:
-    - "{{ NEUTRON_CONFIG.compute.services }}"
-    - "{{ COMPUTE_NODES }}"
-  tags:
-    - neutron-service-restart
-    - compute-node
 
 #########################
 # Configure OVS Bridges #
